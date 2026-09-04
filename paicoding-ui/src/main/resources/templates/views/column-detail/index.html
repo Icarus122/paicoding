@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <div th:replace="components/layout/header :: head(~{::title}, ~{}, ~{})">
+    <title th:text="${vo.article.title  + ' - ' + global.siteInfo.websiteName}">
+      专栏内容详情页 | 技术派
+    </title>
+  </div>
+
+  <link rel="stylesheet" href="/css/views/column-detail.css" th:href="${global.siteInfo.oss + '/css/views/column-detail.css'}" />
+  <script src="/js/biz/selection.js" th:src="${global.siteInfo.oss + '/js/biz/selection.js'}"></script>
+  <script src="/js/biz/highlightcomment.js?v=202608101224" th:src="${global.siteInfo.oss + '/js/biz/highlightcomment.js?v=202608101224'}"></script>
+  <script src="/js/biz/ai-comment.js?v=202606021332" th:src="${global.siteInfo.oss + '/js/biz/ai-comment.js?v=202606021332'}"></script>
+  <script src="/js/biz/comment-markdown.js?v=202606021520" th:src="${global.siteInfo.oss + '/js/biz/comment-markdown.js?v=202606021520'}"></script>
+
+  <body id="body" data-copy-limit="200" data-copy-limit-scope="#articleContent" data-copy-limit-exempt="pre,code">
+    <!-- 导航栏 -->
+    <div th:replace="components/layout/navbar :: navbar"></div>
+    <div class="article-wrap">
+        <!-- 目录 -->
+        <div th:replace="views/column-detail/column-menu/index"></div>
+        <div class="column-sidebar-rail">
+          <button id="columnMenuDesktopToggle"
+                  class="column-sidebar-toggle"
+                  type="button"
+                  aria-controls="collapseMenu"
+                  aria-expanded="true"
+                  aria-label="收起教程目录"
+                  data-tooltip="收起教程目录"
+                  title="收起教程目录">
+            <span class="column-sidebar-toggle__grip" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+            <svg class="column-sidebar-toggle__icon" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M9 3L5 7L9 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <!-- 内容 -->
+        <div class="article-content-wrap bg-color">
+          <!--  增加一个搜索的 Form 表单和左侧目录折叠的按钮  -->
+          <div class="for-menu">
+            <form class="bd-search d-flex align-items-center">
+              <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+              <!-- 折叠专栏目录按钮 -->
+              <button class="btn bd-search-docs-toggle d-lg-none pl-1 pr-0"
+                      type="button"
+                      data-toggle="collapse"
+                      data-target="#collapseMenu"
+                      aria-controls="collapseMenu"
+                      aria-expanded="false"
+                      aria-label="Toggle docs navigation"
+                      th:data-toggle-tooltip="tooltip"
+                      title="展开/收起专栏目录">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" focusable="false">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"/>
+                </svg>
+                <span class="d-lg-none ml-1" style="font-size: 12px;">专栏</span>
+              </button>
+              <!-- 折叠文章内容导航按钮 -->
+              <button class="btn bd-toc-toggle d-lg-none pl-1 pr-0 ml-2"
+                      type="button"
+                      data-toggle="collapse"
+                      data-target="#contentMenuCollapse"
+                      aria-controls="contentMenuCollapse"
+                      aria-expanded="false"
+                      aria-label="Toggle table of contents"
+                      th:data-toggle-tooltip="tooltip"
+                      title="展开/收起文章目录">
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+                <span class="d-lg-none ml-1" style="font-size: 12px;">目录</span>
+              </button>
+            </form>
+          </div>
+
+          <!--  正文 -->
+          <div class="article-content-inter-wrap">
+            <div th:replace="components/article/article-detail :: article_info(${vo.article}, null, ${vo.other}, ${vo.payUsers})"></div>
+            <!--  评论  -->
+            <div id="commentDiv">
+              <div th:replace="components/comment/comment-list :: comment_list(${vo.hotComment}, ${vo.comments}, ${vo.article}, ${vo.topCommentTotal})"
+              >
+                评论列表
+              </div>
+            </div>
+          </div>
+
+          <!-- 文章内容导航 -->
+          <div class="right-container toc-container column collapse d-lg-block toc-responsive layout-side">
+            <div class="right-container">
+              <div id="toc-container-position" class="right-container"></div>
+              <div class="right-container toc-container column collapse d-lg-block toc-responsive" id="contentMenuCollapse">
+                <div class="widget rounded ">
+                  <div class="toc-drawer-header">
+                    <h3 class="com-nav-bar-title">目录</h3>
+                    <button type="button" class="toc-drawer-close" id="tocDrawerClose" aria-label="关闭文章目录">×</button>
+                  </div>
+                  <div id="contentMenu" class="toc toc-sticky"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 引用评论侧边栏 -->
+            <div id="quoteCommentSidebar" class="right-container quote-comment-sidebar" style="display: none;">
+              <div class="widget highlight-comment-thread">
+                <div class="highlight-comment-thread__head">
+                  <div class="highlight-comment-thread__head-main">
+                    <h3 class="com-nav-bar-title">划线评论</h3>
+                    <p class="highlight-comment-thread__desc">围绕这段划线内容的讨论</p>
+                  </div>
+                  <button type="button" class="highlight-comment-thread__close" aria-label="关闭划线评论">×</button>
+                </div>
+                <div class="quote-content">
+                  <div class="highlight-comment-thread__quote-label">划线片段</div>
+                  <div class="quote-text" id="quotedText"></div>
+                  <div class="quote-comment-form comment-input-container">
+                    <textarea id="quoteCommentInput" placeholder="写下您的评论..." class="form-control"></textarea>
+
+                    <div class="comment-toolbar">
+                      <div class="toolbar-left">
+                        <div class="ai-bot-selector" id="sideAiBotSelector">
+                          <button type="button" class="ai-bot-btn" id="sideAiBotBtn">
+                            🤖
+                          </button>
+                          <div class="ai-bot-dropdown" id="sideAiBotDropdown" style="top: 100%; bottom: auto;">
+                            <div class="ai-bot-option" data-bot="hater">杠精派</div>
+                            <div class="ai-bot-option" data-bot="smart">派聪明</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="toolbar-right">
+                        <span class="comment-count"><span id="sideCommentCount">0</span>/512</span>
+                        <button id="submitQuoteComment" class="c-btn c-btn-primary mt-2" disabled>提交评论</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="toc-drawer-backdrop" id="tocDrawerBackdrop" style="display: none;"></div>
+
+        </div>
+      </div>
+
+    <!--   文章分享模态框   -->
+    <div class="modal fade" id="shareModal" data-nosnippet tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">分享文章</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body text-center">
+            <div class="qrcode-container mb-3">
+              <img id="shareQrCode" src="" alt="分享二维码" width="200" height="200">
+            </div>
+            <div class="short-url-container">
+              <div class="input-group" style="max-width: 500px; margin: 0 auto;">
+                <input type="text" id="shortUrl" class="form-control" readonly >
+                <div class="input-group-append">
+                  <button class="btn btn-primary" type="button" onclick="copyAndClose()">复制</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 引用评论弹窗 (移动端) -->
+    <div class="modal fade" id="quoteCommentModal" data-nosnippet tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">引用评论</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="quote-content">
+              <div class="quote-text" id="quotedTextModal"></div>
+              <div class="quote-comment-form">
+                <textarea id="quoteCommentInputModal" placeholder="写下您的评论..." class="form-control"></textarea>
+                <button id="submitQuoteCommentModal" class="c-btn c-btn-primary mt-2" disabled>提交评论</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </body>
+
+  <script th:inline="javascript">
+    const COLUMN_MENU_COLLAPSED_KEY = 'column-menu-collapsed';
+
+    function isColumnMenuDesktop() {
+      return window.matchMedia('(min-width: 992px)').matches;
+    }
+
+    function applyColumnMenuState(collapsed) {
+      const articleWrap = document.querySelector('.article-wrap');
+      const menu = document.getElementById('collapseMenu');
+      const menuInner = menu ? menu.querySelector('.book-summary-inner') : null;
+      if (!articleWrap || !menu) {
+        return;
+      }
+
+      articleWrap.classList.toggle('column-menu-collapsed', collapsed);
+      if (collapsed) {
+        menu.style.width = '0';
+        menu.style.minWidth = '0';
+        menu.style.borderRightWidth = '0';
+        menu.style.overflow = 'hidden';
+        if (menuInner) {
+          menuInner.style.opacity = '0';
+          menuInner.style.pointerEvents = 'none';
+        }
+      } else {
+        menu.style.width = '';
+        menu.style.minWidth = '';
+        menu.style.borderRightWidth = '';
+        menu.style.overflow = '';
+        if (menuInner) {
+          menuInner.style.opacity = '';
+          menuInner.style.pointerEvents = '';
+        }
+      }
+    }
+
+    function updateColumnMenuToggle() {
+      const toggle = document.getElementById('columnMenuDesktopToggle');
+      if (!toggle) {
+        return;
+      }
+      const collapsed = document.querySelector('.article-wrap').classList.contains('column-menu-collapsed');
+      const label = collapsed ? '展开教程目录' : '收起教程目录';
+      toggle.classList.toggle('is-collapsed', collapsed);
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+      toggle.setAttribute('aria-label', label);
+      toggle.setAttribute('title', label);
+      toggle.setAttribute('data-tooltip', label);
+    }
+
+    // menu 是否显示
+    function checkMediaQuery() {
+      const articleWrap = document.querySelector('.article-wrap');
+      if (isColumnMenuDesktop()) {
+        $('#collapseMenu').addClass('show');
+        const collapsed = localStorage.getItem(COLUMN_MENU_COLLAPSED_KEY) === 'true';
+        applyColumnMenuState(collapsed);
+      } else {
+        applyColumnMenuState(false);
+        $('#collapseMenu').removeClass('show');
+      }
+      updateColumnMenuToggle();
+    }
+
+    // 监听窗口大小变化
+    $(window).resize(checkMediaQuery);
+
+    // 初始检查
+    checkMediaQuery();
+
+    // menu 滚动到指定位置
+    function scrollToMenu() {
+      const sectiona = $("a.active.section");
+      if (sectiona.length > 0) {
+        sectiona[0].scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "center",
+        });
+      }
+    }
+
+    $('#collapseMenu').on('shown.bs.collapse', function () {
+      scrollToMenu();
+    })
+
+    $('#columnMenuDesktopToggle').on('click', function () {
+      if (!isColumnMenuDesktop()) {
+        return;
+      }
+      const articleWrap = document.querySelector('.article-wrap');
+      const collapsed = !articleWrap.classList.contains('column-menu-collapsed');
+      applyColumnMenuState(collapsed);
+      localStorage.setItem(COLUMN_MENU_COLLAPSED_KEY, String(collapsed));
+      updateColumnMenuToggle();
+    })
+
+    scrollToMenu();
+
+    // 内容渲染
+    const articleId = [[${ vo.article.articleId }]];
+    const localCourseProgressEnabled = [[${!global.isLogin}]];
+    const columnProgressKey = 'paicoding:course-progress:' + String([[${vo.columnSlug != null && vo.columnSlug != '' ? vo.columnSlug : vo.column}]]);
+    const articleScrollContainer = document.querySelector(".article-content-wrap")
+    function getActiveArticleScrollContainer() {
+      return isColumnMenuDesktop() ? articleScrollContainer : null
+    }
+    const articleScrollProgressKey = columnProgressKey + ':scroll:' + String(articleId)
+    const ARTICLE_SCROLL_PROGRESS_MAX_AGE = 1000 * 60 * 60 * 24 * 30
+    let articleScrollSaveTimer = null
+    let articleScrollResizeTimer = null
+    let suppressArticleScrollSave = false
+    let articleScrollRestored = false
+    let tocActiveUpdatePending = false
+    let lastKnownArticleScrollSnapshot = null
+
+    function normalizeCourseArticleUrl(url) {
+      if (!url || url.indexOf('#') === 0) {
+        return ''
+      }
+      try {
+        const parsed = new URL(url, window.location.origin)
+        if (parsed.origin !== window.location.origin) {
+          return ''
+        }
+        return parsed.pathname + parsed.search + parsed.hash
+      } catch (e) {
+        return ''
+      }
+    }
+
+    function rememberCourseArticleProgress() {
+      if (!localCourseProgressEnabled) {
+        return
+      }
+
+      const activeSection = document.querySelector('.section.active')
+      const currentArticleUrl = normalizeCourseArticleUrl(activeSection ? activeSection.getAttribute('href') : window.location.href)
+      if (!currentArticleUrl || !articleId) {
+        return
+      }
+
+      try {
+        const rawProgress = localStorage.getItem(columnProgressKey)
+        const progress = rawProgress ? JSON.parse(rawProgress) : {}
+        const readArticles = Array.isArray(progress.readArticles) ? progress.readArticles.map(String) : []
+        const currentArticleId = String(articleId)
+        if (readArticles.indexOf(currentArticleId) === -1) {
+          readArticles.push(currentArticleId)
+        }
+        localStorage.setItem(columnProgressKey, JSON.stringify({
+          lastArticleId: currentArticleId,
+          lastUrl: currentArticleUrl,
+          readArticles: readArticles,
+          updatedAt: Date.now()
+        }))
+      } catch (e) {
+        // localStorage may be unavailable in private modes; reading should still work normally.
+      }
+    }
+
+    rememberCourseArticleProgress()
+
+    const FLOAT_ACTION_COLLAPSED_KEY = "column-float-actions-collapsed"
+    let commented = [[${ vo.article.commented }]]
+    let commentCount = [[${ vo.article.count.commentCount }]]
+
+    function syncCommentFloatBtn() {
+      const commentFloatItem = $("#commentFloatBtn .article-change-item")
+      if (!commentFloatItem.length) {
+        return
+      }
+
+      commentFloatItem.toggleClass("active", !!commented)
+
+      if (commentCount > 0) {
+        commentFloatItem.addClass("with-badge")
+        commentFloatItem.attr("badge", commentCount)
+      } else {
+        commentFloatItem.removeClass("with-badge")
+        commentFloatItem.removeAttr("badge")
+      }
+    }
+
+    function getArticleScrollSnapshot() {
+      const activeArticleScrollContainer = getActiveArticleScrollContainer()
+      const scroller = activeArticleScrollContainer || document.scrollingElement || document.documentElement
+      const scrollTop = activeArticleScrollContainer ? activeArticleScrollContainer.scrollTop : (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0)
+      const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+      return {
+        scrollTop: Math.max(0, scrollTop),
+        scrollRatio: maxScroll > 0 ? Math.max(0, Math.min(1, scrollTop / maxScroll)) : 0,
+        scrollHeight: scroller.scrollHeight,
+        clientHeight: scroller.clientHeight,
+        maxScroll: maxScroll
+      }
+    }
+
+    function saveArticleScrollProgress(snapshot) {
+      if (!articleId) {
+        return
+      }
+
+      const currentSnapshot = snapshot || getArticleScrollSnapshot()
+      lastKnownArticleScrollSnapshot = currentSnapshot
+
+      try {
+        localStorage.setItem(articleScrollProgressKey, JSON.stringify({
+          scrollTop: Math.round(currentSnapshot.scrollTop),
+          scrollRatio: currentSnapshot.scrollRatio,
+          scrollHeight: currentSnapshot.scrollHeight,
+          clientHeight: currentSnapshot.clientHeight,
+          path: window.location.pathname + window.location.search,
+          updatedAt: Date.now()
+        }))
+      } catch (e) {
+        // localStorage may be unavailable in private modes; reading should still work normally.
+      }
+    }
+
+    function scheduleArticleScrollProgressSave() {
+      if (suppressArticleScrollSave) {
+        return
+      }
+      window.clearTimeout(articleScrollSaveTimer)
+      articleScrollSaveTimer = window.setTimeout(function () {
+        saveArticleScrollProgress()
+      }, 120)
+    }
+
+    function readArticleScrollProgress() {
+      try {
+        const rawProgress = localStorage.getItem(articleScrollProgressKey)
+        if (!rawProgress) {
+          return null
+        }
+        const progress = JSON.parse(rawProgress)
+        if (!progress || Date.now() - Number(progress.updatedAt || 0) > ARTICLE_SCROLL_PROGRESS_MAX_AGE) {
+          return null
+        }
+        return progress
+      } catch (e) {
+        return null
+      }
+    }
+
+    function scrollArticleTo(top, behavior) {
+      const targetTop = Math.max(0, top || 0)
+      const activeArticleScrollContainer = getActiveArticleScrollContainer()
+      if (activeArticleScrollContainer) {
+        activeArticleScrollContainer.scrollTo({
+          top: targetTop,
+          behavior: behavior || "auto"
+        })
+        return
+      }
+
+      window.scrollTo({
+        top: targetTop,
+        behavior: behavior || "auto"
+      })
+    }
+
+    function restoreArticleScrollProgress(force) {
+      if (!articleId || (!force && window.location.hash)) {
+        return
+      }
+
+      const savedProgress = readArticleScrollProgress()
+      if (!savedProgress) {
+        return
+      }
+
+      const snapshot = getArticleScrollSnapshot()
+      if (!snapshot.maxScroll) {
+        return
+      }
+
+      const savedTop = Number(savedProgress.scrollTop) || 0
+      const savedRatio = Number(savedProgress.scrollRatio)
+      const savedMaxScroll = Math.max(0, (Number(savedProgress.scrollHeight) || 0) - (Number(savedProgress.clientHeight) || 0))
+      const shouldUseRatio = Number.isFinite(savedRatio) && savedMaxScroll > 0 && Math.abs(snapshot.maxScroll - savedMaxScroll) > 120
+      const targetTop = Math.min(snapshot.maxScroll, Math.max(0, shouldUseRatio ? snapshot.maxScroll * savedRatio : savedTop))
+
+      if (targetTop > 0 || force) {
+        scrollArticleTo(targetTop, "auto")
+        articleScrollRestored = true
+        lastKnownArticleScrollSnapshot = getArticleScrollSnapshot()
+        syncBackTopFloatBtn()
+        scheduleTocActiveStateUpdate()
+      }
+    }
+
+    function restoreArticleHashScrollIfNeeded() {
+      if (!window.location.hash) {
+        return false
+      }
+
+      let targetId = window.location.hash.substring(1)
+      try {
+        targetId = decodeURIComponent(targetId)
+      } catch (e) {
+        return false
+      }
+      const targetElement = document.getElementById(targetId)
+      if (!targetElement) {
+        return false
+      }
+
+      window.requestAnimationFrame(function () {
+        scrollElementIntoArticleView(targetElement, "auto", 16)
+      })
+      return true
+    }
+
+    function restoreArticleScrollProgressWhenReady() {
+      if (restoreArticleHashScrollIfNeeded()) {
+        return
+      }
+
+      window.requestAnimationFrame(function () {
+        restoreArticleScrollProgress(false)
+        window.requestAnimationFrame(function () {
+          restoreArticleScrollProgress(false)
+        })
+      })
+
+      window.addEventListener("load", function () {
+        window.setTimeout(function () {
+          if (!articleScrollRestored || getArticleScrollSnapshot().scrollTop < 40) {
+            restoreArticleScrollProgress(false)
+          }
+        }, 80)
+      }, { once: true })
+    }
+
+    function scheduleArticleScrollRestoreAfterResize() {
+      const snapshot = getArticleScrollSnapshot()
+      if (snapshot.scrollTop > 0) {
+        lastKnownArticleScrollSnapshot = snapshot
+      }
+
+      suppressArticleScrollSave = true
+      window.clearTimeout(articleScrollResizeTimer)
+      articleScrollResizeTimer = window.setTimeout(function () {
+        if (lastKnownArticleScrollSnapshot && lastKnownArticleScrollSnapshot.scrollTop > 0) {
+          const currentSnapshot = getArticleScrollSnapshot()
+          const targetTop = lastKnownArticleScrollSnapshot.scrollRatio > 0
+            ? currentSnapshot.maxScroll * lastKnownArticleScrollSnapshot.scrollRatio
+            : lastKnownArticleScrollSnapshot.scrollTop
+          scrollArticleTo(Math.min(currentSnapshot.maxScroll, targetTop), "auto")
+        } else {
+          restoreArticleScrollProgress(true)
+        }
+        suppressArticleScrollSave = false
+        saveArticleScrollProgress()
+        syncBackTopFloatBtn()
+        scheduleTocActiveStateUpdate()
+      }, 180)
+    }
+
+    function scrollElementIntoArticleView(targetElement, behavior, topOffset) {
+      if (!targetElement) {
+        return
+      }
+
+      const activeArticleScrollContainer = getActiveArticleScrollContainer()
+      if (activeArticleScrollContainer && activeArticleScrollContainer.contains(targetElement)) {
+        const containerRect = activeArticleScrollContainer.getBoundingClientRect()
+        const targetRect = targetElement.getBoundingClientRect()
+        const targetTop = activeArticleScrollContainer.scrollTop + targetRect.top - containerRect.top - (topOffset || 0)
+        scrollArticleTo(targetTop, behavior || "smooth")
+        return
+      }
+
+      targetElement.scrollIntoView({
+        behavior: behavior || "smooth",
+        block: "start"
+      })
+    }
+
+    // 跳转到评论的地方
+    $("#commentFloatBtn").click(function () {
+      scrollElementIntoArticleView(document.getElementById("commentList"), "smooth", 16);
+    })
+
+    const backTopFloatItem = document.querySelector("#backTopFloatBtn .article-change-item")
+    const floatActionPanel = document.querySelector(".article-change")
+    const floatActionToggleBtn = document.getElementById("floatActionToggleBtn")
+
+    function applyFloatActionPanelState(collapsed) {
+      if (!floatActionPanel || !floatActionToggleBtn) {
+        return
+      }
+
+      floatActionPanel.classList.toggle("is-collapsed", !!collapsed)
+      floatActionToggleBtn.setAttribute("aria-label", collapsed ? "展开快捷操作" : "收起快捷操作")
+    }
+
+    function syncBackTopFloatBtn() {
+      if (!backTopFloatItem) {
+        return
+      }
+      const activeArticleScrollContainer = getActiveArticleScrollContainer()
+      const scrollTop = activeArticleScrollContainer ? activeArticleScrollContainer.scrollTop : window.scrollY
+      const shouldShowBackTop = scrollTop > 320
+      backTopFloatItem.classList.toggle("is-visible", shouldShowBackTop)
+      if (floatActionPanel) {
+        floatActionPanel.classList.toggle("with-back-top", shouldShowBackTop)
+      }
+    }
+
+    $("#backTopFloatBtn").click(function () {
+      scrollArticleTo(0, "smooth")
+    })
+
+    function handleArticleContentScroll() {
+      syncBackTopFloatBtn()
+      scheduleArticleScrollProgressSave()
+      scheduleTocActiveStateUpdate()
+    }
+
+    if (articleScrollContainer) {
+      articleScrollContainer.addEventListener("scroll", handleArticleContentScroll, { passive: true })
+    }
+    window.addEventListener("scroll", handleArticleContentScroll, { passive: true })
+    if (floatActionToggleBtn) {
+      const savedCollapsed = localStorage.getItem(FLOAT_ACTION_COLLAPSED_KEY) === "true"
+      applyFloatActionPanelState(savedCollapsed)
+      floatActionToggleBtn.addEventListener("click", function () {
+        const nextCollapsed = !floatActionPanel.classList.contains("is-collapsed")
+        applyFloatActionPanelState(nextCollapsed)
+        localStorage.setItem(FLOAT_ACTION_COLLAPSED_KEY, String(nextCollapsed))
+      })
+    }
+    syncBackTopFloatBtn()
+    syncCommentFloatBtn()
+    restoreArticleScrollProgressWhenReady()
+    window.addEventListener("beforeunload", function () {
+      saveArticleScrollProgress()
+    })
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") {
+        saveArticleScrollProgress()
+      }
+    })
+    $(window).on('resize.articleScrollProgress', scheduleArticleScrollRestoreAfterResize)
+
+    // 点赞
+    let praisedCount = [[${ vo.article.count.praiseCount }]]
+    let praised = [[${ vo.article.praised }]]
+    const isLogin = [[${ global.isLogin }]]
+    const currentUserId = isLogin ? [[${ global.user != null ? global.user.userId : '' }]] : '';
+    const currentUserAvatar = isLogin ? [[${ global.user != null ? global.user.photo : '' }]] : '';
+
+
+    // 为选中的文本添加下划线样式
+    const highlightComments = [[${vo.highlightComments}]];
+    console.log('highlightComments:', highlightComments)
+    if (highlightComments) {
+      // 初始化文章的下划线样式
+      initUnderlineToSelection(highlightComments);
+    }
+
+
+    function praiseFunc() {
+      if (!isLogin) {
+        // 未登录，不执行相关操作
+        return;
+      }
+      const praiseFloatItem = $("#praiseFloatBtn .article-change-item")
+      praised = !praised;
+      praiseArticle(articleId, praised, function (data) {
+        let avatarList = $('#praiseUsers')
+        if (praised) {
+          // 点赞
+          praisedCount += 1;
+          praiseFloatItem.addClass("active")
+          $("#praiseBtn").addClass("active")
+
+          // 添加当前点赞用户的头像
+          avatarList.prepend('' +
+            '            <a class="g-user-popover approval-img" href="/user/' + currentUserId + '">\n' +
+            '                <img src="' + currentUserAvatar + '" width="25" height="25">\n' +
+            '            </a>')
+        } else {
+          // 取消点赞
+          praisedCount -= 1;
+          praiseFloatItem.removeClass("active")
+          $("#praiseBtn").removeClass("active")
+
+          // 移除当前点赞用户的头像
+          let subItems = avatarList.children();
+          for (let i = 0; i < subItems.length; i++) {
+            let target = subItems[i];
+            if (target.innerHTML.indexOf(currentUserAvatar) >= 0) {
+              // 移除当前用户头像
+              target.remove();
+              break;
+            }
+          }
+        }
+        if (praisedCount > 0) {
+          praiseFloatItem.addClass("with-badge")
+          praiseFloatItem.attr("badge", praisedCount)
+          $('#praiseDesc').text(String(praisedCount) + '人已点赞');
+        } else {
+          praiseFloatItem.removeClass("with-badge")
+          praiseFloatItem.removeAttr("badge")
+          $('#praiseDesc').text('真诚点赞，诚不我欺');
+        }
+      });
+    }
+
+    $("#praiseFloatBtn, #praiseBtn").on('click', function () {
+      praiseFunc();
+    });
+
+    // 收藏
+    let collectionCount = [[${ vo.article.count.collectionCount }]]
+    let collected = [[${ vo.article.collected }]]
+    $("#collectFloatBtn").click(function () {
+      if (!isLogin) {
+        // 未登录，不执行相关操作
+        return;
+      }
+
+      collected = !collected;
+
+      collectArticle(articleId, collected, function (data) {
+        if (collected) {
+          // 点赞
+          collectionCount += 1;
+          $("#collectFloatBtn").addClass("active")
+        } else {
+          collectionCount -= 1;
+          $("#collectFloatBtn").removeClass("active")
+        }
+
+        if (collectionCount > 0) {
+          $("#collectFloatBtn").addClass("with-badge")
+          $('#collectFloatBtn').attr("badge", collectionCount)
+        } else {
+          $("#collectFloatBtn").removeClass("with-badge")
+          $('#collectFloatBtn').removeAttr("badge")
+        }
+      });
+    })
+
+    // 二维码
+    $("#qrIconTag").click(function () {
+      const tag = $("#qrTipsTag")
+      if (tag.hasClass("show")) {
+        tag.removeClass("show")
+      } else {
+        tag.addClass("show")
+      }
+    })
+
+    function scrollToLatestTopComment(commentContent) {
+      const trimmedContent = commentContent ? commentContent.trim() : ""
+      const commentItems = document.querySelectorAll("#commentDiv .all-comment-items .all-comment-item .comment-item-wrap")
+      let targetComment = null
+
+      if (trimmedContent) {
+        targetComment = Array.from(commentItems).find(function(item) {
+          const contentNode = item.querySelector(".common-item-content-value")
+          return contentNode && contentNode.innerText && contentNode.innerText.trim().indexOf(trimmedContent) >= 0
+        })
+      }
+
+      if (!targetComment) {
+        targetComment = document.querySelector("#commentDiv .all-comment-items .all-comment-item:first-child .comment-item-wrap")
+      }
+
+      if (!targetComment) {
+        targetComment = document.getElementById("commentList")
+      }
+
+      if (targetComment && typeof targetComment.scrollIntoView === "function") {
+        scrollElementIntoArticleView(targetComment, "smooth", 80)
+      }
+    }
+
+    function bindCommentInputEvent() {
+      // 直接评论
+      const commentContent = $("#commentContent")
+      const commentBtn = $("#commentBtn")
+      commentBtn.click(function () {
+        const content = commentContent.val()
+        if (!content || content.length > 512) {
+          toastr.error("评论内容长度要求在[1,512]之间")
+          return
+        }
+        const submittedContent = content.trim()
+        // 提交评论
+        const params = {
+          // 文章id
+          articleId: articleId,
+          // 评论内容
+          commentContent: content,
+        }
+        post("/comment/api/post", params, function (data) {
+          commented = true
+          commentCount += 1
+          syncCommentFloatBtn()
+          // 使用 Ajax 的方式，直接更新评论列表
+          document.getElementById("commentDiv").innerHTML = data
+          bindCommentInputEvent()
+          window.requestAnimationFrame(function() {
+            scrollToLatestTopComment(submittedContent)
+          })
+        })
+      })
+
+      // 直接评论监听
+      $(document).on("input propertychange", "#commentContent", function () {
+        const val = $(this).val()
+        console.log(val)
+        if (val) {
+          $("#commentBtn").attr("disabled", false).removeClass("c-btn-disabled")
+        } else {
+          $("#commentBtn").attr("disabled", true).addClass("c-btn-disabled")
+        }
+      })
+    }
+
+    // 回复
+    $(document).on("click", ".reply-comment", function () {
+      const currentDom = $(this)
+      if (currentDom.attr("data-toggle") === "modal") {
+        return
+      }
+      createComment(currentDom)
+    })
+
+    // 回复编辑
+    $(document).on("click", ".hf-pl", function () {
+      const currentDom = $(this)
+      commentSubmit(currentDom)
+    })
+
+    $(document).on("input propertychange", ".hf-input", function () {
+      const currentDom = $(this)
+      listenCommentBtn(currentDom)
+    })
+
+    // 点击回复创建评论
+    const createComment = function (currentDom) {
+      // 移除其他回复
+      $(".hf-con").remove()
+
+      // 获取回复人的名字
+      var fhName = currentDom.attr("data-reply-nickname") ||
+        currentDom
+          .parents(".common-item-content")
+          .find(".comment-name")
+          .first()
+          .text()
+      fhName = fhName ? fhName.trim() : ""
+      //回复@
+      var fhN = "回复@" + fhName + "："
+      var fhHtml =
+        '<div class="hf-con pull-left"><textarea class="hf-input" placeholder="" "></textarea><button disabled class="hf-pl hf-pl--disabled">评论</button></div>'
+      if (currentDom.is(".hf-con-block")) {
+        const currentWrap =
+          (currentDom.parents(".comment-item-wrap").length &&
+            currentDom.parents(".comment-item-wrap")) ||
+          (currentDom.parents(".comment-item-wrap-second").length &&
+            currentDom.parents(".comment-item-wrap-second"))
+
+        currentWrap.find(".common-item-content").append(fhHtml)
+        currentDom.removeClass("hf-con-block")
+        //input框自动聚焦
+        currentDom
+          .parents(".common-item-content")
+          .find(".hf-input")
+          .val("")
+          .focus()
+          .attr("placeholder", fhN)
+        // 取消回复
+        currentDom.find(".reply-comment-text").hide()
+        currentDom.find(".reply-comment-text-none").show()
+      } else {
+        currentDom.addClass("hf-con-block")
+        currentDom.parents(".common-item-content").find(".pull-left").remove()
+        // 回复
+        currentDom.find(".reply-comment-text").show()
+        currentDom.find(".reply-comment-text-none").hide()
+      }
+    }
+
+    // 评论编辑&提交
+    const commentSubmit = function (currentDom) {
+      const replyContent = currentDom.siblings(".hf-input")
+      const replyBtn = currentDom
+        .parents(".common-item-content")
+        .find(".reply-comment")
+
+      if (!replyContent.val()) {
+        toastr.error("回复内容不能为空")
+        return
+      }
+      // 提交评论
+      const params = {
+        // 文章id
+        articleId: $("#postsTitle").attr("data-id"),
+        // 评论内容
+        commentContent: replyContent.val(),
+        // 回复的评论id
+        parentCommentId: replyBtn.attr("data-reply-id"),
+        // 回复的一级评论id
+        topCommentId: replyBtn.attr("data-reply-top"),
+      }
+      post("/comment/api/post", params, function (data) {
+        commented = true
+        commentCount += 1
+        syncCommentFloatBtn()
+        // 对于侧边栏的评论回复
+        if (replyBtn.attr("data-reply-top")) {
+          // 刷新侧边的引用评论内容
+          showQuoteCommentWithComments(replyBtn.attr("data-reply-top"));
+        }
+
+        const currentWrap = currentDom.closest(".expand-replies-wrap").length
+          ? currentDom.closest(".expand-replies-wrap")
+          : currentDom.closest(".comment-item-wrap").next(".expand-replies-wrap")
+        const topCommentId = replyBtn.attr("data-reply-top")
+
+        if (currentWrap.length && topCommentId && typeof refreshExpandedSubComments === "function") {
+          currentDom.closest(".hf-con").remove()
+          refreshExpandedSubComments(currentWrap, topCommentId, function(success) {
+            if (success && typeof highlightLatestSubComment === "function") {
+              highlightLatestSubComment(currentWrap)
+            }
+          })
+          return
+        }
+
+        document.getElementById("commentDiv").innerHTML = data
+        bindCommentInputEvent()
+      })
+    }
+
+    // 监听按钮
+    const listenCommentBtn = function (currentDom) {
+      if (!currentDom.val()) {
+        $(".hf-pl").attr("disabled", true).addClass("hf-pl--disabled")
+      } else {
+        $(".hf-pl").attr("disabled", false).removeClass("hf-pl--disabled")
+      }
+    }
+
+    // 分组展开/收缩功能
+    const initGroupToggle = function() {
+      // 使用Map存储分组状态
+      const groupStates = new Map();
+      
+      // 获取当前激活的文章所在分组
+      const $activeSection = $('.section.active');
+      const activeGroupName = $activeSection.attr('data-group');
+      
+      // 隐藏所有分组下的文章（除了当前激活文章所在的分组）
+      $('.section[data-group]').each(function() {
+        const $section = $(this);
+        const groupName = $section.attr('data-group');
+        
+        if (groupName && groupName !== '未分组') {
+          // 初始化分组状态
+          // 如果是当前激活文章所在的分组，则默认展开（状态为true），否则默认收缩（状态为false）
+          const isActiveGroup = (groupName === activeGroupName);
+          groupStates.set(groupName, isActiveGroup);
+          
+          // 设置默认显示/隐藏状态
+          if (!isActiveGroup) {
+            $section.hide();
+          }
+        }
+      });
+      
+      // 展开当前激活文章所在的分组（更新箭头状态）
+      if (activeGroupName && activeGroupName !== '未分组') {
+        $(`.group-header[data-group="${activeGroupName}"]`).find('.group-toggle').addClass('expanded');
+      }
+      
+      // 为所有分组标题添加点击事件（使用事件委托提高性能）
+      $(document).on('click', '.group-header', function() {
+        const $header = $(this);
+        const $toggle = $header.find('.group-toggle');
+        const groupName = $header.attr('data-group');
+        
+        // 获取当前状态并取反
+        const currentState = groupStates.get(groupName) || false;
+        const newState = !currentState;
+        
+        // 更新状态和UI
+        groupStates.set(groupName, newState);
+        $toggle.toggleClass('expanded', newState);
+        
+        // 批量操作DOM，减少重排
+        requestAnimationFrame(() => {
+          $(`.section[data-group="${groupName}"]`).toggle(newState);
+        });
+      });
+      
+      // 初始状态设置 - 移除没有在当前激活分组中的其他分组的expanded类
+      $('.group-header:not([data-group="' + activeGroupName + '"]) .group-toggle').removeClass('expanded');
+    }
+
+    // 更新浏览器标签页标题
+    const updatePageTitle = function() {
+      // 获取当前文章标题
+      const currentArticleTitle = $('.section.active .title-text').text();
+      // 获取专栏名称（通过查找专栏目录中任意文章的data-group属性，然后找到对应的分组标题）
+      let columnName = '';
+      const $groupHeader = $('.group-header').first();
+      if ($groupHeader.length > 0) {
+        columnName = $groupHeader.find('.group-name').text();
+      }
+      
+      if (currentArticleTitle && columnName) {
+        // 更新页面标题为"文章标题 - 专栏名称 - 网站名称"的格式
+        document.title = currentArticleTitle + ' - ' + columnName + ' - ' + [[${global.siteInfo.websiteName}]];
+      } else if (currentArticleTitle) {
+        // 如果没有专栏名称，至少显示文章标题
+        document.title = currentArticleTitle + ' - ' + [[${global.siteInfo.websiteName}]];
+      }
+    }
+
+    // 生成内容导航菜单
+    function generateTocMenu() {
+      const tocContainer = $('.toc-container');
+      if (tocContainer.length > 0) {
+        const tocMenu = $('#contentMenu');
+        // 获取文章内容中的所有标题，排除modal-dialog中的标题
+        const contentHeadings = $('.article-info-wrap').find('h1, h2, h3, h4, h5, h6').not('.modal-dialog h1, .modal-dialog h2, .modal-dialog h3, .modal-dialog h4, .modal-dialog h5, .modal-dialog h6');
+
+        if (contentHeadings.length > 0) {
+          let tocHtml = '<ul class="markdown-toc-list">';
+          let lastLevel = 0;
+
+          contentHeadings.each(function() {
+            const $heading = $(this);
+            const level = parseInt(this.tagName.charAt(1));
+            const text = $heading.text();
+            const id = $heading.attr('id') || ('heading-' + text.replace(/\s+/g, '-').toLowerCase());
+
+            // 为标题添加id属性
+            $heading.attr('id', id);
+
+            // 构建导航菜单HTML
+            if (level > lastLevel) {
+              tocHtml += '<ul>';
+            } else if (level < lastLevel) {
+              tocHtml += '</li></ul></li>';
+            } else {
+              tocHtml += '</li>';
+            }
+
+            // 添加不同级别的标题类名
+            if (level === 2) {
+              tocHtml += `<li><a class="toc-level-${level} toc-h2" href="#${id}" level="${level}">${text}</a>`;
+            } else if (level === 3) {
+              tocHtml += `<li><a class="toc-level-${level} toc-h3" href="#${id}" level="${level}">${text}</a>`;
+            } else {
+              tocHtml += `<li><a class="toc-level-${level}" href="#${id}" level="${level}">${text}</a>`;
+            }
+            lastLevel = level;
+          });
+
+          tocHtml += '</li></ul>';
+          tocMenu.html(tocHtml);
+          tocContainer.show();
+          
+          // 添加点击事件监听器以更新选中状态
+          bindTocScrollSpy();
+        } else {
+          tocContainer.hide();
+        }
+      }
+    }
+    
+    // 绑定滚动监听和点击事件以更新目录选中状态
+    function bindTocScrollSpy() {
+      // 为目录链接添加点击事件
+      $('#contentMenu a').off('click.columnToc').on('click.columnToc', function(e) {
+        e.preventDefault();
+        // 移除所有现有选中状态
+        $('#contentMenu a').removeClass('active');
+        // 为当前点击的链接添加选中状态
+        $(this).addClass('active');
+
+        // 滚动到对应的内容区域
+        const targetId = $(this).attr('href').substring(1);
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          scrollElementIntoArticleView(targetElement, 'smooth', 16);
+        }
+        
+        // 在小屏幕设备上，点击目录项后自动折叠内容导航
+        if (window.matchMedia('(max-width: 991px)').matches) {
+          $('#contentMenuCollapse').collapse('hide');
+          // 调整内容宽度
+          adjustContentWidth();
+        }
+      });
+
+      $(window).off('scroll.columnToc').on('scroll.columnToc', scheduleTocActiveStateUpdate);
+
+      // 初始化时更新一次选中状态
+      updateTocActiveState();
+    }
+
+    function scheduleTocActiveStateUpdate() {
+      if (tocActiveUpdatePending) {
+        return
+      }
+
+      tocActiveUpdatePending = true
+      window.requestAnimationFrame(function() {
+        tocActiveUpdatePending = false
+        updateTocActiveState()
+      })
+    }
+    
+    // 更新目录的活动状态
+    function updateTocActiveState() {
+      // 移除所有现有选中状态
+      $('#contentMenu a').removeClass('active');
+
+      // 查找当前视口中的标题
+      let currentHeadingId = '';
+      const activeArticleScrollContainer = getActiveArticleScrollContainer()
+      const activeTop = activeArticleScrollContainer ? activeArticleScrollContainer.getBoundingClientRect().top + 100 : 100
+      const headings = Array.prototype.filter.call(
+        document.querySelectorAll('.article-info-wrap h1[id], .article-info-wrap h2[id], .article-info-wrap h3[id], .article-info-wrap h4[id], .article-info-wrap h5[id], .article-info-wrap h6[id]'),
+        function(heading) {
+          return !heading.closest('.modal')
+        }
+      )
+      headings.forEach(function(heading) {
+        if (heading.getBoundingClientRect().top <= activeTop) {
+          currentHeadingId = heading.getAttribute('id');
+        }
+      });
+
+      if (!currentHeadingId && headings.length > 0) {
+        currentHeadingId = headings[0].getAttribute('id');
+      }
+
+      // 为对应的目录项添加选中状态
+      if (currentHeadingId) {
+        const activeAnchor = Array.prototype.find.call(document.querySelectorAll('#contentMenu a'), function(anchor) {
+          return anchor.getAttribute('href') === '#' + currentHeadingId
+        })
+        if (activeAnchor) {
+          activeAnchor.classList.add('active');
+        }
+      }
+
+      // 更新目录容器滚动位置
+      const tocPanel = document.getElementById('contentMenuCollapse');
+      const activeLink = document.querySelector('#contentMenu a.active');
+      if (tocPanel && activeLink) {
+        const panelRect = tocPanel.getBoundingClientRect();
+        const linkRect = activeLink.getBoundingClientRect();
+        const edgeBuffer = 48;
+        if (linkRect.top < panelRect.top + edgeBuffer || linkRect.bottom > panelRect.bottom - edgeBuffer) {
+          tocPanel.scrollTop += linkRect.top - panelRect.top - panelRect.height / 2 + linkRect.height / 2;
+        }
+      }
+    }
+
+    $(document).ready(function () {
+      // 生成内容导航菜单
+      generateTocMenu();
+      
+      // 检查屏幕尺寸并初始化移动端内容导航
+      checkTocMediaQuery();
+      $(window).resize(checkTocMediaQuery);
+      
+      // 监听内容导航的折叠/展开事件
+      $('#contentMenuCollapse').on('show.bs.collapse', function () {
+        syncTocDrawerState(true);
+      }).on('shown.bs.collapse', function () {
+        syncTocDrawerState(true);
+        // 内容导航展开时的处理
+        adjustContentWidth();
+      }).on('hide.bs.collapse', function () {
+        syncTocDrawerState(false);
+      }).on('hidden.bs.collapse', function () {
+        syncTocDrawerState(false);
+        // 内容导航隐藏时的处理
+        adjustContentWidth();
+      });
+
+      $('.bd-toc-toggle').on('click', function () {
+        if (!window.matchMedia('(max-width: 991px)').matches) {
+          return;
+        }
+
+        window.setTimeout(function () {
+          const tocPanel = $('#contentMenuCollapse');
+          syncTocDrawerState(tocPanel.hasClass('show') || tocPanel.hasClass('collapsing'));
+        }, 20);
+      });
+
+      $('#tocDrawerClose, #tocDrawerBackdrop').on('click', function () {
+        closeTocDrawer();
+      });
+
+      const handleTocDrawerEscape = function (event) {
+        if (event.key === 'Escape' || event.key === 'Esc' || event.keyCode === 27) {
+          closeTocDrawer();
+        }
+      };
+
+      $(document).on('keydown', handleTocDrawerEscape);
+      $(window).on('keydown', handleTocDrawerEscape);
+      
+      // 初始化工具提示
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+
+    bindCommentInputEvent()
+    initGroupToggle()
+
+    function syncTocDrawerState(open) {
+      const tocLayoutSide = $('.toc-container.column.layout-side');
+      const tocDrawerBackdrop = $('#tocDrawerBackdrop');
+      if (!tocLayoutSide.length || window.matchMedia('(min-width: 992px)').matches) {
+        tocLayoutSide.css('display', '');
+        tocDrawerBackdrop.css('display', 'none');
+        return;
+      }
+
+      tocLayoutSide.toggleClass('show', !!open);
+      tocLayoutSide.css('display', open ? 'block' : 'none');
+      tocDrawerBackdrop.css('display', open ? 'block' : 'none');
+    }
+
+    function closeTocDrawer() {
+      if (!window.matchMedia('(max-width: 991px)').matches) {
+        return;
+      }
+
+      const tocPanel = $('#contentMenuCollapse');
+      if (tocPanel.hasClass('show') || tocPanel.hasClass('collapsing')) {
+        tocPanel.collapse('hide');
+      } else {
+        syncTocDrawerState(false);
+      }
+    }
+
+    // 检查屏幕尺寸并处理内容导航显示状态
+    function checkTocMediaQuery() {
+      const tocContainer = $('.toc-container');
+      const tocLayoutSide = $('.toc-container.column.layout-side');
+      const tocPanel = $('#contentMenuCollapse');
+      if (window.matchMedia('(min-width: 992px)').matches) {
+        // 大屏幕设备，显示内容导航
+        tocContainer.addClass('d-lg-block').removeClass('collapse');
+        tocContainer.css('display', ''); // 清除可能的display: none
+        tocLayoutSide.addClass('show');
+        tocPanel.addClass('show');
+      } else {
+        // 小屏幕设备，确保内容导航是折叠的
+        tocContainer.removeClass('d-lg-block').addClass('collapse');
+        syncTocDrawerState(tocPanel.hasClass('show'));
+        // 如果之前是展开状态，需要隐藏
+        if (tocPanel.hasClass('show')) {
+          tocPanel.collapse('hide');
+        }
+      }
+      // 调整内容宽度
+      adjustContentWidth();
+    }
+    
+    // 调整正文内容宽度
+      function adjustContentWidth() {
+        const tocContainer = $('.toc-container.column.layout-side');
+        const contentWrap = $('.article-content-inter-wrap');
+        const highlightSidebarActive = tocContainer.hasClass('highlight-sidebar-active');
+        
+        if (window.matchMedia('(min-width: 992px)').matches) {
+          // 大屏幕设备，保留右边距为目录留出空间
+          contentWrap.css('margin-right', highlightSidebarActive ? '330px' : '300px');
+        } else {
+          // 小屏幕设备，右边距设为0以充分利用屏幕空间
+          contentWrap.css('margin-right', '0');
+        }
+      }
+
+      window.adjustContentWidth = adjustContentWidth;
+
+    function copyAndClose() {
+      // 复制短链
+      copyShortUrl();
+      // // 关闭弹窗，有个问题，关闭之后无法再次打开；先不关闭
+      // $('#shareModal').hide();
+    }
+  </script>
+</html>

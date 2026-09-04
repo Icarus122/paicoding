@@ -1,0 +1,63 @@
+net:
+  proxy:
+    # 代理相关信息
+    - ip: 127.0.0.1
+      port: 1080
+      type: SOCKS
+
+
+
+ai:
+  web-search:
+    search-engine: ${PAICODING_AI_WEB_SEARCH_ENGINE:search_pro}
+    count: ${PAICODING_AI_WEB_SEARCH_COUNT:5}
+    search-recency-filter: ${PAICODING_AI_WEB_SEARCH_RECENCY:noLimit}
+    content-size: ${PAICODING_AI_WEB_SEARCH_CONTENT_SIZE:high}
+    coding-mcp-url: ${PAICODING_AI_WEB_SEARCH_CODING_MCP_URL:https://open.bigmodel.cn/api/mcp/web_search_prime/mcp}
+
+zhipu:
+  coding:
+    apiKey: ${PAICODING_ZHIPU_CODING_API_KEY:}
+
+# chatgpt
+chatgpt:
+  main: CHAT_GPT_3_5
+  conf:
+    CHAT_GPT_3_5:
+      keys:
+        - # 这里输入你的key
+      proxy: true # 表示走上面的代理进行访问
+      apiHost: https://api.openai.com/
+      timeOut: 900
+      maxToken: 3000
+    CHAT_GPT_4:
+      keys:
+        -
+      proxy: true
+      apiHost: https://api.openai.com/
+      timeOut: 900
+      maxToken: 200000
+  number:
+    # 普通用户
+    normal: 50
+    vip: 100
+
+
+
+# 讯飞AI
+xunfei:
+  hostUrl: http://spark-api.xf-yun.com/v1.1/chat
+  appId:
+  apiKey:
+  apiSecret:
+
+deepseek:
+  apiHost: https://api.deepseek.com
+  apiKey: # 使用自己的密钥进行替换
+  model: deepseek-chat
+  timeout: 900 # 超时时间，单位秒
+
+doubao:
+  api-key: # 使用自己的密钥进行替换
+  api-host: https://ark.cn-beijing.volces.com/api/v3
+  end-point: # 使用自己创建的接入点进行替换

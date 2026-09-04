@@ -1,0 +1,501 @@
+package com.github.paicoding.forum.service.sitemap.service.impl;
+
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.github.paicoding.forum.api.model.enums.ArticleEventEnum;
+import com.github.paicoding.forum.api.model.enums.column.ColumnStatusEnum;
+import com.github.paicoding.forum.api.model.event.ArticleMsgEvent;
+import com.github.paicoding.forum.api.model.vo.article.dto.SimpleArticleDTO;
+import com.github.paicoding.forum.core.cache.RedisClient;
+import com.github.paicoding.forum.core.util.DateUtil;
+import com.github.paicoding.forum.core.util.Md5Util;
+import com.github.paicoding.forum.core.util.UrlSlugUtil;
+import com.github.paicoding.forum.service.article.repository.dao.ArticleDao;
+import com.github.paicoding.forum.service.article.repository.dao.ColumnArticleDao;
+import com.github.paicoding.forum.service.article.repository.dao.ColumnDao;
+import com.github.paicoding.forum.service.article.repository.entity.ArticleDO;
+import com.github.paicoding.forum.service.article.repository.entity.ColumnArticleDO;
+import com.github.paicoding.forum.service.article.repository.entity.ColumnInfoDO;
+import com.github.paicoding.forum.service.sitemap.constants.SitemapConstants;
+import com.github.paicoding.forum.service.sitemap.model.SiteCntVo;
+import com.github.paicoding.forum.service.sitemap.model.SiteMapVo;
+import com.github.paicoding.forum.service.sitemap.model.SiteUrlVo;
+import com.github.paicoding.forum.service.sitemap.service.SitemapService;
+import com.github.paicoding.forum.service.statistics.service.CountService;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * @author YiHui
+ * @date 2023/2/13
+ */
+@Slf4j
+@Service
+public class SitemapServiceImpl implements SitemapService {
+    @Value("${view.site.host:https://paicoding.com}")
+    private String host;
+    private static final int SCAN_SIZE = 100;
+    private static final int LLMS_LATEST_ARTICLE_SIZE = 50;
+
+    private static final String SITE_MAP_CACHE_KEY = "sitemap";
+    private static final long VISIT_STAT_TTL_SECONDS = 30 * DateUtil.ONE_DAY_SECONDS;
+    private static final int VISIT_PATH_MAX_LENGTH = 160;
+    private static final String UV_KEY_SUFFIX = ":uv";
+    private static final String PATH_UV_KEY_SUFFIX = ":uv:path:";
+
+    @Resource
+    private ArticleDao articleDao;
+    @Resource
+    private CountService countService;
+    @Resource
+    private ColumnArticleDao columnArticleDao;
+    @Resource
+    private ColumnDao columnDao;
+    @Resource
+    private Environment environment;
+
+    /**
+     * 查询站点地图
+     * @return 返回站点地图
+     */
+    public SiteMapVo getSiteMap() {
+        // key = 文章id, value = 最后更新时间
+        Map<String, Long> siteMap = RedisClient.hGetAll(SITE_MAP_CACHE_KEY, Long.class);
+        if (CollectionUtils.isEmpty(siteMap)) {
+            // 首次访问时，没有数据，全量初始化
+            initSiteMap();
+        }
+        siteMap = RedisClient.hGetAll(SITE_MAP_CACHE_KEY, Long.class);
+        SiteMapVo vo = initBasicSite();
+        if (CollectionUtils.isEmpty(siteMap)) {
+            return vo;
+        }
+
+        // 批量查询文章信息以获取slug
+        List<Long> articleIds = siteMap.keySet().stream()
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
+
+        List<ArticleDO> articles = articleDao.listByIds(articleIds);
+        Map<Long, ArticleDO> articleMap = articles.stream()
+                .collect(Collectors.toMap(ArticleDO::getId, article -> article, (a, b) -> a));
+
+        long now = System.currentTimeMillis();
+        long thirtyDaysAgo = now - (30L * 24 * 60 * 60 * 1000);
+        long ninetyDaysAgo = now - (90L * 24 * 60 * 60 * 1000);
+
+        for (Map.Entry<String, Long> entry : siteMap.entrySet()) {
+            Long articleId = Long.valueOf(entry.getKey());
+            ArticleDO article = articleMap.get(articleId);
+            if (article == null) {
+                continue;
+            }
+
+            ColumnArticleDO columnArticle = columnArticleDao.selectColumnArticleByArticleId(articleId);
+            String url = buildArticleUrl(article, articleId, columnArticle);
+            if (StringUtils.isBlank(url)) {
+                continue;
+            }
+
+            // 根据文章更新时间决定 changefreq 和 priority
+            String changefreq;
+            String priority;
+            long updateTime = entry.getValue();
+            
+            if (updateTime > thirtyDaysAgo) {
+                // 30天内更新的文章
+                changefreq = "weekly";
+                priority = "0.8";
+            } else if (updateTime > ninetyDaysAgo) {
+                // 30-90天内更新的文章
+                changefreq = "monthly";
+                priority = "0.6";
+            } else {
+                // 90天以上的旧文章
+                changefreq = "yearly";
+                priority = "0.5";
+            }
+
+            vo.addUrl(new SiteUrlVo(url, DateUtil.time2sitemapDate(updateTime), changefreq, priority));
+        }
+        return vo;
+    }
+
+    private String buildArticleUrl(ArticleDO article, Long articleId, ColumnArticleDO columnArticle) {
+        if (columnArticle != null) {
+            if (isValidUrlSlug(article.getUrlSlug())) {
+                return host() + "/" + article.getUrlSlug();
+            }
+            return host() + "/column/" + columnArticle.getColumnId() + "/" + columnArticle.getSection();
+        }
+        if (isValidUrlSlug(article.getUrlSlug())) {
+            return host() + "/" + article.getUrlSlug();
+        }
+        return host() + "/article/detail/" + articleId;
+    }
+
+    private String buildColumnUrl(ColumnInfoDO column) {
+        if (isValidUrlSlug(column.getUrlSlug())) {
+            return host() + "/column/" + column.getUrlSlug();
+        }
+        return host() + "/column/" + column.getId();
+    }
+
+    private boolean isValidUrlSlug(String urlSlug) {
+        return UrlSlugUtil.isCanonicalSlug(urlSlug);
+    }
+
+    /**
+     * fixme: 加锁初始化，更推荐的是采用分布式锁
+     */
+    private synchronized void initSiteMap() {
+        long lastId = 0L;
+        RedisClient.del(SITE_MAP_CACHE_KEY);
+        while (true) {
+            List<SimpleArticleDTO> list = articleDao.getBaseMapper().listArticlesOrderById(lastId, SCAN_SIZE);
+            // 刷新文章的统计信息
+            list.forEach(s -> countService.refreshArticleStatisticInfo(s.getId()));
+
+            // 刷新站点地图信息
+            Map<String, Long> map = list.stream().collect(Collectors.toMap(s -> String.valueOf(s.getId()), s -> s.getCreateTime().getTime(), (a, b) -> a));
+            RedisClient.hMSet(SITE_MAP_CACHE_KEY, map);
+            if (list.size() < SCAN_SIZE) {
+                break;
+            }
+            lastId = list.get(list.size() - 1).getId();
+        }
+    }
+
+    private SiteMapVo initBasicSite() {
+        SiteMapVo vo = new SiteMapVo();
+        String time = DateUtil.time2sitemapDate(System.currentTimeMillis());
+        
+        // 首页：最高优先级，每日更新
+        vo.addUrl(new SiteUrlVo(host() + "/", time, "daily", "1.0"));
+        
+        // 专栏列表：高优先级，每周更新
+        vo.addUrl(new SiteUrlVo(host() + "/column", time, "weekly", "0.8"));
+
+        // 教程详情：有 urlSlug 时输出固定语义路径，未设置时保留 ID 兜底路径
+        List<ColumnInfoDO> columns = columnDao.lambdaQuery()
+                .gt(ColumnInfoDO::getState, ColumnStatusEnum.OFFLINE.getCode())
+                .list();
+        columns.forEach(column -> vo.addUrl(new SiteUrlVo(buildColumnUrl(column), time, "weekly", "0.7")));
+        
+        return vo;
+    }
+
+    /**
+     * 重新刷新站点地图
+     */
+    @Override
+    public void refreshSitemap() {
+        initSiteMap();
+    }
+
+    /**
+     * 生成 robots.txt 内容
+     */
+    @Override
+    public String getRobotsTxt() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("User-agent: *\n");
+        sb.append("Allow: /\n");
+        sb.append("\n");
+        sb.append("# 禁止抓取管理后台\n");
+        sb.append("Disallow: /admin/\n");
+        sb.append("Disallow: /admin-view\n");
+        sb.append("\n");
+        sb.append("# 禁止抓取API接口\n");
+        sb.append("Disallow: /api/\n");
+        sb.append("Disallow: /*/api/\n");
+        sb.append("Disallow: /article/api/\n");
+        sb.append("Disallow: /column/api/\n");
+        sb.append("Disallow: /comment/api/\n");
+        sb.append("Disallow: /notice/api/\n");
+        sb.append("Disallow: /search/api/\n");
+        sb.append("Disallow: /user/api/\n");
+        sb.append("\n");
+        // 用户主页数量上万、内容单薄，早已统一 noindex 并退出索引；
+        // 但谷歌仍在复爬它们（实测占 Googlebot 抓取量的 36%），这里整段屏蔽把抓取预算还给文章页。
+        // 顺序不能反：必须等 noindex 生效、页面退出索引后再屏蔽，否则谷歌看不到 noindex，反而会把它们冻在索引里。
+        sb.append("# 禁止抓取用户相关页面\n");
+        sb.append("Disallow: /user/\n");
+        sb.append("Disallow: /login/\n");
+        sb.append("Disallow: /logout\n");
+        sb.append("\n");
+        sb.append("# 禁止抓取支付和回调入口\n");
+        sb.append("Disallow: /wx/\n");
+        sb.append("Disallow: /article/payConfirm\n");
+        sb.append("Disallow: /article/api/pay/\n");
+        sb.append("\n");
+        sb.append("# Sitemap 位置\n");
+        sb.append("Sitemap: ").append(host()).append("/sitemap.xml\n");
+        return sb.toString();
+    }
+
+    /**
+     * 生成 llms.txt：面向 AI 引擎（ChatGPT/Claude/Perplexity 等）的站点内容目录。
+     * 规范参考 https://llmstxt.org/ ：H1 站点名 + 引用块简介 + 分节链接列表（markdown）。
+     */
+    @Override
+    public String getLlmsTxt() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# 技术派（paicoding.com）\n\n");
+        sb.append("> 技术派是面向开发者的中文技术社区，由沉默王二创办。核心内容：AI 编程工具实战");
+        sb.append("（Codex、Claude Code、Agent 开发、Skills 配置）、Java 后端技术、RAG/大模型项目实战、");
+        sb.append("求职面试。文章均为一手原创实践，引用时请标注来源 paicoding.com。\n\n");
+
+        sb.append("## 教程专栏\n\n");
+        List<ColumnInfoDO> columns = columnDao.lambdaQuery()
+                .gt(ColumnInfoDO::getState, ColumnStatusEnum.OFFLINE.getCode())
+                .list();
+        for (ColumnInfoDO column : columns) {
+            sb.append("- [").append(mdText(column.getColumnName())).append("](").append(buildColumnUrl(column)).append(")");
+            if (StringUtils.isNotBlank(column.getIntroduction())) {
+                sb.append(": ").append(mdText(StringUtils.abbreviate(column.getIntroduction(), 80)));
+            }
+            sb.append('\n');
+        }
+
+        sb.append("\n## 最新文章\n\n");
+        Map<String, Long> siteMap = RedisClient.hGetAll(SITE_MAP_CACHE_KEY, Long.class);
+        if (CollectionUtils.isEmpty(siteMap)) {
+            initSiteMap();
+            siteMap = RedisClient.hGetAll(SITE_MAP_CACHE_KEY, Long.class);
+        }
+        List<Map.Entry<String, Long>> latest = siteMap.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(LLMS_LATEST_ARTICLE_SIZE)
+                .collect(Collectors.toList());
+        List<Long> articleIds = latest.stream().map(e -> Long.valueOf(e.getKey())).collect(Collectors.toList());
+        if (!articleIds.isEmpty()) {
+            Map<Long, ArticleDO> articleMap = articleDao.listByIds(articleIds).stream()
+                    .collect(Collectors.toMap(ArticleDO::getId, article -> article, (a, b) -> a));
+            for (Map.Entry<String, Long> entry : latest) {
+                ArticleDO article = articleMap.get(Long.valueOf(entry.getKey()));
+                if (article == null) {
+                    continue;
+                }
+                ColumnArticleDO columnArticle = columnArticleDao.selectColumnArticleByArticleId(article.getId());
+                String url = buildArticleUrl(article, article.getId(), columnArticle);
+                sb.append("- [").append(mdText(article.getTitle())).append("](").append(url).append(")");
+                if (StringUtils.isNotBlank(article.getSummary())) {
+                    sb.append(": ").append(mdText(StringUtils.abbreviate(article.getSummary(), 80)));
+                }
+                sb.append('\n');
+            }
+        }
+
+        sb.append("\n## 更多\n\n");
+        sb.append("- 全站文章索引（sitemap）: ").append(host()).append("/sitemap.xml\n");
+        sb.append("- 站点首页: ").append(host()).append("/\n");
+        return sb.toString();
+    }
+
+    /**
+     * markdown 链接文本安全处理：去掉换行和中括号，避免破坏列表结构
+     */
+    private String mdText(String text) {
+        if (StringUtils.isBlank(text)) {
+            return "";
+        }
+        return text.replaceAll("[\\r\\n\\[\\]]", " ").trim();
+    }
+
+    /**
+     * 基于文章的上下线，自动更新站点地图
+     *
+     * @param event
+     */
+    @EventListener(ArticleMsgEvent.class)
+    public void autoUpdateSiteMap(ArticleMsgEvent<ArticleDO> event) {
+        ArticleEventEnum type = event.getType();
+        if (type == ArticleEventEnum.ONLINE) {
+            addArticle(event.getContent().getId());
+        } else if (type == ArticleEventEnum.OFFLINE || type == ArticleEventEnum.DELETE) {
+            rmArticle(event.getContent().getId());
+        }
+    }
+
+    /**
+     * 新增文章并上线
+     *
+     * @param articleId
+     */
+    private void addArticle(Long articleId) {
+        RedisClient.hSet(SITE_MAP_CACHE_KEY, String.valueOf(articleId), System.currentTimeMillis());
+    }
+
+    /**
+     * 删除文章、or文章下线
+     *
+     * @param articleId
+     */
+    private void rmArticle(Long articleId) {
+        RedisClient.hDel(SITE_MAP_CACHE_KEY, String.valueOf(articleId));
+    }
+
+
+    /**
+     * 采用定时器方案，每天5:15分刷新站点地图，确保数据的一致性
+     */
+    @Scheduled(cron = "0 15 5 * * ?")
+    public void autoRefreshCache() {
+        log.info("开始刷新sitemap.xml的url地址，避免出现数据不一致问题!");
+        refreshSitemap();
+        log.info("刷新完成！");
+    }
+
+
+    /**
+     * 保存站点数据模型
+     * <p>
+     * 站点统计hash：
+     * - visit_info:
+     * ---- pv: 站点的总pv
+     * ---- uv: 站点的总uv
+     * ---- pv_path: 站点某个资源的总访问pv
+     * ---- uv_path: 站点某个资源的总访问uv
+     * - visit_info_ip:
+     * ---- pv: 用户访问的站点总次数
+     * ---- path_pv: 用户访问的路径总次数
+     * - visit_info_20230822每日记录, 一天一条记录
+     * ---- pv: 12  # field = 月日_pv, pv的计数
+     * ---- uv: 5   # field = 月日_uv, uv的计数
+     * ---- pv_path: 2 # 资源的当前访问计数
+     * ---- uv_path: # 资源的当天访问uv
+     * ---- pv_ip: # 用户当天的访问次数
+     * ---- pv_path_ip: # 用户对资源的当天访问次数
+     *
+     * @param visitIp 访问者ip
+     * @param path    访问的资源路径
+     */
+    @Override
+    public void saveVisitInfo(String visitIp, String path) {
+        path = normalizeVisitPath(path);
+        if (StringUtils.isBlank(visitIp) || StringUtils.isBlank(path)) {
+            return;
+        }
+        String globalKey = SitemapConstants.SITE_VISIT_KEY;
+        String day = SitemapConstants.day(LocalDate.now());
+
+        String todayKey = globalKey + "_" + day;
+        String globalUvKey = uvKey(globalKey);
+        String todayUvKey = uvKey(todayKey);
+        String todayPathUvKey = pathUvKey(todayKey, path);
+        Long globalNewUv = RedisClient.pfAdd(globalUvKey, visitIp);
+        Long todayNewUv = RedisClient.pfAdd(todayUvKey, visitIp);
+        Long todayPathNewUv = RedisClient.pfAdd(todayPathUvKey, visitIp);
+
+        RedisClient.PipelineAction pipelineAction = RedisClient.pipelineAction();
+        pipelineAction.add(todayKey, (connection, key) -> connection.expire(key, VISIT_STAT_TTL_SECONDS));
+        pipelineAction.add(todayUvKey, (connection, key) -> connection.expire(key, VISIT_STAT_TTL_SECONDS));
+        pipelineAction.add(todayPathUvKey, (connection, key) -> connection.expire(key, VISIT_STAT_TTL_SECONDS));
+        if (isNewHllItem(globalNewUv)) {
+            pipelineAction.add(globalKey, "uv", (connection, key, field) -> connection.hIncrBy(key, field, 1));
+        }
+        if (isNewHllItem(todayNewUv)) {
+            pipelineAction.add(todayKey, "uv", (connection, key, field) -> connection.hIncrBy(key, field, 1));
+        }
+        if (isNewHllItem(todayPathNewUv)) {
+            pipelineAction.add(todayKey, "uv_" + path, (connection, key, field) -> connection.hIncrBy(key, field, 1));
+            // 全量 path UV 采用日 UV 累加，避免为每个 path 维护永久 IP 集合。
+            pipelineAction.add(globalKey, "uv_" + path, (connection, key, field) -> connection.hIncrBy(key, field, 1));
+        }
+
+
+        // 更新pv 以及 用户的path访问信息
+        // 今天的相关信息 pv
+        pipelineAction.add(todayKey, "pv", (connection, key, field) -> connection.hIncrBy(key, field, 1));
+        pipelineAction.add(todayKey, "pv_" + path, (connection, key, field) -> connection.hIncrBy(key, field, 1));
+
+        // 全局的 PV
+        pipelineAction.add(globalKey, "pv", (connection, key, field) -> connection.hIncrBy(key, field, 1));
+        pipelineAction.add(globalKey, "pv" + "_" + path, (connection, key, field) -> connection.hIncrBy(key, field, 1));
+
+        // 保存访问信息
+        pipelineAction.execute();
+        if (log.isDebugEnabled()) {
+            log.info("用户访问信息更新完成! globalNewUv: {}，todayNewUv: {}，todayPathNewUv: {}", globalNewUv, todayNewUv, todayPathNewUv);
+        }
+    }
+
+    private boolean isNewHllItem(Long ans) {
+        return ans != null && ans > 0;
+    }
+
+    private String uvKey(String statKey) {
+        return statKey + UV_KEY_SUFFIX;
+    }
+
+    private String pathUvKey(String statKey, String path) {
+        return statKey + PATH_UV_KEY_SUFFIX + Md5Util.encode(path);
+    }
+
+    private String normalizeVisitPath(String path) {
+        if (StringUtils.isBlank(path)) {
+            return null;
+        }
+        int queryIndex = path.indexOf('?');
+        if (queryIndex >= 0) {
+            path = path.substring(0, queryIndex);
+        }
+        path = StringUtils.trimToNull(path);
+        if (path == null) {
+            return null;
+        }
+        return path.length() > VISIT_PATH_MAX_LENGTH ? path.substring(0, VISIT_PATH_MAX_LENGTH) : path;
+    }
+
+    /**
+     * 查询站点某一天or总的访问信息
+     *
+     * @param date 日期，为空时，表示查询所有的站点信息
+     * @param path 访问路径，为空时表示查站点信息
+     * @return
+     */
+    @Override
+    public SiteCntVo querySiteVisitInfo(LocalDate date, String path) {
+        String globalKey = SitemapConstants.SITE_VISIT_KEY;
+        String day = null, todayKey = globalKey;
+        if (date != null) {
+            day = SitemapConstants.day(date);
+            todayKey = globalKey + "_" + day;
+        }
+
+        String pvField = "pv", uvField = "uv";
+        if (path != null) {
+            // 表示查询对应路径的访问信息
+            pvField += "_" + path;
+            uvField += "_" + path;
+        }
+
+        Map<String, Integer> map = RedisClient.hMGet(todayKey, Arrays.asList(pvField, uvField), Integer.class);
+        SiteCntVo siteInfo = new SiteCntVo();
+        siteInfo.setDay(day);
+        siteInfo.setPv(map.getOrDefault(pvField, 0));
+        siteInfo.setUv(map.getOrDefault(uvField, 0));
+        return siteInfo;
+    }
+
+    private String host() {
+        String configuredHost = StringUtils.removeEnd(StringUtils.defaultString(host, "https://paicoding.com"), "/");
+        Integer localPort = environment.getProperty("local.server.port", Integer.class);
+        if (localPort != null && (StringUtils.contains(configuredHost, "127.0.0.1") || StringUtils.contains(configuredHost, "localhost"))) {
+            return "http://127.0.0.1:" + localPort;
+        }
+        return configuredHost;
+    }
+}

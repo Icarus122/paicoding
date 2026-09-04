@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<!-- 侧边栏 精选教程 -->
+<section class="column home-right-item-wrap relative com-2-panel J-specialTopicPanel"
+     th:fragment="side_column(side)">
+    <img class="w-full column-bg" src="/img/sidebar-hot-bg.png" th:src="${global.siteInfo.oss + '/img/sidebar-hot-bg.png'}"/>
+    <div class="column-content">
+        <div class="home-right-item-title absolute">
+            <div class="com-2-panel-title"
+                th:text="${side.title}">精选教程</div>
+        </div>
+        <div class="home-right-item-post-list com-2-panel-bd">
+            <ul class="com-2-side-topics without-margin">
+                <li th:each="item : ${side.items}">
+                    <a th:href="${item.url}"
+                       class="com-media com-side-topic">
+                        <div class="com-media-object">
+                            <span class="com-thumbnail"
+                                  th:style="'background-image:url('+${item.img}+')'">
+                            </span>
+                        </div>
+                        <div class="com-media-body">
+                            <div class="com-side-topic-title">
+                                <span class="vip-free-tag tag">限免</span>
+                                <span class="column-title"
+                                      th:text="${item.name}"></span>
+                            </div>
+                            <div class="com-side-topic-desc" th:text="${item.title}">教程描述</div>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>

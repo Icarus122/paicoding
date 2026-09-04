@@ -1,0 +1,25 @@
+<view class="profile-edit-page">
+  <view class="avatar-section">
+    <button class="avatar-button" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" disabled="{{uploading || saving}}">
+      <image class="avatar-preview" src="{{avatarUrl || '/assets/images/avatar.png'}}" mode="aspectFill" />
+      <view class="avatar-mask">{{uploading ? '上传中' : '更换头像'}}</view>
+    </button>
+  </view>
+
+  <view class="form-card">
+    <view class="form-item">
+      <text class="form-label">昵称</text>
+      <input class="form-input" type="nickname" value="{{nickName}}" maxlength="50" placeholder="请输入昵称" bindinput="onNickNameInput" />
+    </view>
+
+    <view class="form-item form-item-column">
+      <view class="form-row">
+        <text class="form-label">简介</text>
+        <text class="form-count">{{profile.length}}/225</text>
+      </view>
+      <textarea class="form-textarea" value="{{profile}}" maxlength="225" placeholder="介绍一下自己" bindinput="onProfileInput" />
+    </view>
+  </view>
+
+  <button class="save-button" bindtap="saveProfile" loading="{{saving}}" disabled="{{saving || uploading}}">保存</button>
+</view>

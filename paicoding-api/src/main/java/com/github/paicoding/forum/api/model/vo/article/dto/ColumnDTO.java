@@ -1,0 +1,118 @@
+package com.github.paicoding.forum.api.model.vo.article.dto;
+
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.github.paicoding.forum.api.model.enums.column.ColumnStatusEnum;
+import com.github.paicoding.forum.api.model.enums.column.ColumnTypeEnum;
+import com.github.paicoding.forum.api.model.util.cdn.CdnUtil;
+import com.github.paicoding.forum.api.model.vo.user.dto.ColumnFootCountDTO;
+import com.github.paicoding.forum.api.model.util.cdn.CdnImgSerializer;
+import lombok.Data;
+
+/**
+ * @author YiHui
+ * @date 2022/9/14
+ */
+@Data
+public class ColumnDTO {
+
+    /**
+     * 专栏id
+     */
+    private Long columnId;
+
+    /**
+     * 专栏名
+     */
+    private String column;
+
+    /**
+     * URL友好的教程标识
+     */
+    private String urlSlug;
+
+    /**
+     * 教程介绍页 README 内容
+     */
+    private String readmeContent;
+
+    /**
+     * 说明
+     */
+    private String introduction;
+
+    /**
+     * 封面
+     */
+    @JsonSerialize(using = CdnImgSerializer.class)
+    private String cover;
+
+    /**
+     * 发布时间
+     */
+    private Long publishTime;
+
+    /**
+     * 排序
+     */
+    private Integer section;
+
+    /**
+     * 0 未发布 1 连载 2 完结
+     *
+     * @see ColumnStatusEnum#getCode()
+     */
+    private Integer state;
+
+    /**
+     * 专栏预计的文章数
+     */
+    private Integer nums;
+
+    /**
+     * 专栏类型
+     *
+     * @see ColumnTypeEnum#getType()
+     */
+    private Integer type;
+
+    /**
+     * 限时免费开始时间
+     */
+    private Long freeStartTime;
+
+    /**
+     * 限时免费结束时间
+     */
+    private Long freeEndTime;
+
+    /**
+     * 作者
+     */
+    private Long author;
+
+    /**
+     * 作者名
+     */
+    private String authorName;
+
+    /**
+     * 作者头像
+     */
+    @JsonSerialize(using = CdnImgSerializer.class)
+    private String authorAvatar;
+
+    /**
+     * 个人简介
+     */
+    private String authorProfile;
+
+    /**
+     * 统计计数相关信息
+     */
+    private ColumnFootCountDTO count;
+
+    public ColumnDTO setAuthorAvatar(String authorAvatar) {
+        this.authorAvatar = CdnUtil.autoTransCdn(authorAvatar);
+        return this;
+    }
+}

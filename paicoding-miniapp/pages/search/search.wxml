@@ -1,0 +1,79 @@
+<view class="search-page">
+  <view class="search-box">
+    <t-input
+      class="search-input"
+      t-class="search-input__inner"
+      t-class-input="search-input__field"
+      value="{{key}}"
+      placeholder="搜索 Java、Spring、面试、AI"
+      maxlength="64"
+      confirm-type="search"
+      clearable
+      borderless
+      focus="{{focus}}"
+      prefix-icon="search"
+      bind:change="onInput"
+      bind:clear="clearSearch"
+      bind:blur="onInputBlur"
+    />
+    <t-button theme="primary" size="small" class="search-button" shape="round" bindtap="doSearch">搜索</t-button>
+  </view>
+
+  <!-- 未搜索时:历史 -->
+  <block wx:if="{{!searched && !key}}">
+    <view wx:if="{{history.length > 0}}" class="history-panel">
+      <view class="section-head">
+        <text class="section-title">最近搜索</text>
+        <text class="section-action" bindtap="clearHistory">清空</text>
+      </view>
+      <view class="tag-row">
+        <view
+          wx:for="{{history}}"
+          wx:key="*this"
+          class="tag-chip tag-chip--ghost"
+          hover-class="tag-chip--hover"
+          data-key="{{item}}"
+          bindtap="chooseHistory"
+        >{{item}}</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 搜索结果区 -->
+  <scroll-view
+    class="result-scroll {{articles.length > 0 ? 'result-scroll--has-data' : ''}}"
+    scroll-y
+    bindscrolltolower="loadMore"
+    refresher-enabled="{{searched}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <!-- 首次加载中 -->
+    <view wx:if="{{searched && loading && !firstLoaded}}" class="state-card">
+      <view class="loading-dots"><text class="dot"></text><text class="dot"></text><text class="dot"></text></view>
+      <view class="state-desc muted">正在搜索…</view>
+    </view>
+
+    <!-- 加载失败 -->
+    <view wx:elif="{{error && searched && articles.length === 0}}" class="state-card panel">
+      <view class="state-title">搜索失败</view>
+      <view class="state-desc muted">{{error}}</view>
+      <t-button theme="primary" size="small" class="retry-button" bindtap="retry">重试</t-button>
+    </view>
+
+    <!-- 空结果 -->
+    <empty-state
+      wx:elif="{{searched && firstLoaded && !loading && articles.length === 0}}"
+      text="没有找到相关文章"
+    />
+
+    <!-- 结果列表 -->
+    <block wx:else>
+      <article-card wx:for="{{articles}}" wx:key="articleId" article="{{item}}" />
+
+      <view wx:if="{{searched && articles.length > 0}}" class="load-state muted">
+        {{loading ? '加载中…' : (hasMore ? '上拉加载更多' : '没有更多了')}}
+      </view>
+    </block>
+  </scroll-view>
+</view>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <!-- 文章卡片 -->
+  <div
+    class="cdc-article-panel user-article-item"
+    th:fragment="article_card(article)"
+    th:attr="data-article-id=${article.articleId},data-create-time=${article.createTime},data-topping-stat=${article.toppingStat == null ? 0 : article.toppingStat}"
+  >
+    <a
+      class="cdc-article-panel__link"
+      rel="noreferrer"
+      th:href="${article.urlSlug != null && article.urlSlug != '' ? '/' + article.urlSlug : '/article/detail/' + article.articleId}"
+    ></a>
+    <div class="cdc-article-panel__inner">
+      <div class="user-article-item-content cdc-article-panel__main">
+        <div class="user-article-item-title-wrap cdc-article-panel__title">
+          <img
+            class="article-card-top-img"
+            th:if="${article.toppingStat == 1 && #httpServletRequest != null && #httpServletRequest.requestURI == '/'}"
+            src="https://cdn.cnbj1.fds.api.mi-img.com/aife/technology-platform-fe/preview/dist/static/commandImg.99adc700.svg"
+          />
+          <span
+            th:text="${article.title}"
+            class="user-article-item-title"
+          ></span>
+          <span th:if="${article.status != 1}">
+            <span th:text="${article.status == 0 ? '(草稿)' : '(审核中)'}" class="user-article-item-tag"></span>
+          </span>
+        </div>
+        <div class="user-article-item-value-wrap cdc-article-panel__media">
+          <div
+            class="user-article-item-value-text cdc-article-panel__desc"
+            th:text="${article.summary}"
+          >
+            文章简介
+          </div>
+        </div>
+        <div class="user-article-item-footer cdc-article-panel__infos">
+          <div class="user-article-item-footer-left cdc-article-panel__user">
+            <span
+              class="article-title-other-name cdc-avatar large cdc-article-panel__user-avatar circle"
+            >
+              <a
+                class="cdc-avatar__inner"
+                th:style="'background-image: url(' + ${article.authorAvatar} + ');'"
+                th:href="${'/user/' + article.author}"
+              ></a>
+            </span>
+            <a
+              class="article-title-wrap cdc-article-panel__user-name"
+              th:text="${article.authorName}"
+              th:href="${'/user/' + article.author}"
+            ></a>
+          </div>
+          <div
+            class="cdc-article-panel__date"
+            th:text="${T(com.github.paicoding.forum.core.util.DateUtil).time2day(article.createTime)}"
+          ></div>
+
+          <div class="cdc-icon__list cdc-article-panel__operate d-flex">
+            <div class="article-show-wrap">
+              <!--  阅读计数  -->
+              <a th:href="${article.urlSlug != null && article.urlSlug != '' ? '/' + article.urlSlug : '/article/detail/' + article.articleId}">
+                <img
+                  class="read-comment-praise"
+                  src="/img/stat-read.png" th:src="${global.siteInfo.oss + '/img/stat-read.png'}"
+                />
+                <span
+                  class="cdc-icon__number"
+                  th:text="${article.count.readCount}"
+                ></span>
+              </a>
+            </div>
+            <div class="article-show-wrap">
+              <!--  评论计数  -->
+              <a
+                th:href="${article.urlSlug != null && article.urlSlug != '' ? '/' + article.urlSlug + '#commentList' : '/article/detail/' + article.articleId + '#commentList'}"
+              >
+                <img
+                  class="read-comment-praise"
+                  src="/img/stat-comment.png" th:src="${global.siteInfo.oss + '/img/stat-comment.png'}"
+                />
+                <span
+                  class="cdc-icon__number"
+                  th:text="${article.count.commentCount}"
+                >
+                  12
+                </span>
+              </a>
+            </div>
+            <div class="article-show-wrap">
+              <!--  点赞计数  -->
+              <!--  fixme 后续优化为可以直接在列表页进行点赞/取消  -->
+              <a th:href="${article.urlSlug != null && article.urlSlug != '' ? '/' + article.urlSlug : '/article/detail/' + article.articleId}">
+                <img
+                  class="read-comment-praise"
+                  src="/img/stat-praise.png" th:src="${global.siteInfo.oss + '/img/stat-praise.png'}"
+                />
+                <span
+                  class="cdc-icon__number"
+                  th:text="${article.count.praiseCount}"
+                >
+                  12
+                </span>
+              </a>
+            </div>
+          </div>
+
+          <div
+            class="user-article-item-tag-wrap cdc-tag-links cdc-article-panel__tags"
+          >
+            <div style="margin-right:4px;margin-bottom:2px" th:if="${article.readType != null && article.readType == 4}">
+              <svg class="icon" style="width: 2em;height: 1.2em;vertical-align: middle;fill: red;overflow: hidden;" viewBox="0 0 1877 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="16915"><path d="M170.666667 0h1536a170.666667 170.666667 0 0 1 170.666666 170.666667v682.666666a170.666667 170.666667 0 0 1-170.666666 170.666667H170.666667a170.666667 170.666667 0 0 1-170.666667-170.666667V170.666667a170.666667 170.666667 0 0 1 170.666667-170.666667z m220.074666 170.666667A879.445333 879.445333 0 0 1 213.333333 496.298667l16.896 57.6c34.56-36.864 66.048-75.264 93.696-115.968v445.44h55.296V346.538667c24.576-47.616 46.08-97.536 62.976-151.296L390.741333 170.666667z m67.584 173.568v53.76h294.144V785.066667c0 27.648-12.288 41.472-36.096 41.472-33.792 0-68.352-1.536-104.448-3.84l12.288 54.528H735.573333c47.616 0 72.192-26.112 72.192-78.336V397.994667h110.592v-53.76H807.765333V179.114667h-55.296v165.12H458.325333z m70.656 137.472l-45.312 27.648c56.064 68.352 100.608 130.56 133.632 186.624l46.848-33.024c-31.488-51.456-76.8-112.128-135.168-181.248z m918.528-127.488h169.728v-138.24h-169.728v-39.936h-53.76v39.936h-112.128v-39.936h-53.76v39.936h-175.104v45.312h175.104v49.152h-155.136l-26.88 134.4h151.296c-4.608 6.144-9.984 12.288-15.36 18.432-29.952 27.648-83.712 49.92-162.048 66.816l27.648 43.776a744.106667 744.106667 0 0 0 59.136-16.128V762.026667h54.528V602.282667h376.32V762.026667h54.528V553.130667h-471.552c44.544-15.36 78.336-34.56 102.912-57.6a223.573333 223.573333 0 0 0 36.096-50.688h134.4v87.552h53.76V444.842667h154.368c-0.768 19.968-3.072 33.024-7.68 39.936-6.144 7.68-20.736 11.52-44.544 11.52-12.288 0-25.344-0.768-39.168-1.536l10.752 39.168c10.752 0 23.04 0.768 35.328 0.768 41.472 0 68.352-8.448 79.872-25.344 11.52-14.592 17.664-49.92 17.664-106.752h-206.592v-48.384z m-56.832 397.056l-27.648 41.472c92.16 22.272 182.016 52.992 269.568 92.928l29.952-46.08a1684.992 1684.992 0 0 0-271.872-88.32z m-71.424-122.112c-6.144 69.888-26.112 119.808-60.672 149.76-39.168 30.72-119.808 48.384-241.92 54.528l22.272 49.152c138.24-9.984 226.56-33.792 266.496-71.424 36.096-30.72 59.136-89.088 69.12-176.64l-55.296-5.376z m-201.216-274.944l-12.288 48.384h113.664c4.608-15.36 7.68-31.488 8.448-48.384h-109.824z m163.584 0a458.325333 458.325333 0 0 1-6.912 48.384h119.04v-48.384h-112.128z m0-92.928v49.152h112.128v-49.152h-112.128z m165.888 0v49.152h117.504v-49.152h-117.504z" p-id="16916"></path></svg>
+            </div>
+
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              class="cdc-tag-links__icon"
+            >
+              <mask
+                id="mask0_1118_14146"
+                style="mask-type: alpha"
+                maskUnits="userSpaceOnUse"
+                x="0"
+                y="0"
+                width="16"
+                height="16"
+              >
+                <rect width="16" height="16" fill="#D9D9D9" />
+              </mask>
+              <g mask="url(#mask0_1118_14146)">
+                <path
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  d="M13.7262 8.18068L12.5948 3.6552L8.06934 2.52383L2.45929 8.13388L8.11614 13.7907L13.7262 8.18068ZM13.4194 2.83058L14.8337 8.48743L8.11614 15.2049L1.04508 8.13388L7.76259 1.41636L13.4194 2.83058Z"
+                  fill="#495770"
+                />
+                <circle
+                  cx="10.5911"
+                  cy="5.659"
+                  r="1"
+                  transform="rotate(45 10.5911 5.659)"
+                  fill="#495770"
+                />
+              </g>
+            </svg>
+
+            <div class="cdc-tag-links__items">
+              <a
+                th:href="'/article/tag/' + ${tag.tag}"
+                th:text="${tag.tag}"
+                rel="article-tag"
+                th:each="tag : ${article.tags}"
+                class="user-article-item-tag cdc-tag-links__item"
+              ></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="user-article-img cdc-article-panel__object"
+        th:if="${!#strings.isEmpty(article.cover)}"
+      >
+        <span
+          class="cdc-article-panel__object-thumbnail"
+          th:style="'background-image: url(' + ${article.cover} + ');'"
+        ></span>
+      </div>
+    </div>
+  </div>
+</html>

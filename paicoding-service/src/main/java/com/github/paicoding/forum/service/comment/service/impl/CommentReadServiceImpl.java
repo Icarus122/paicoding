@@ -1,0 +1,392 @@
+package com.github.paicoding.forum.service.comment.service.impl;
+
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.github.paicoding.forum.api.model.context.ReqInfoContext;
+import com.github.paicoding.forum.api.model.enums.DocumentTypeEnum;
+import com.github.paicoding.forum.api.model.enums.PraiseStatEnum;
+import com.github.paicoding.forum.api.model.enums.YesOrNoEnum;
+import com.github.paicoding.forum.api.model.vo.PageParam;
+import com.github.paicoding.forum.api.model.vo.comment.dto.BaseCommentDTO;
+import com.github.paicoding.forum.api.model.vo.comment.dto.SubCommentDTO;
+import com.github.paicoding.forum.api.model.vo.comment.dto.TopCommentDTO;
+import com.github.paicoding.forum.api.model.vo.comment.vo.SubCommentListVO;
+import com.github.paicoding.forum.api.model.vo.user.dto.BaseUserInfoDTO;
+import com.github.paicoding.forum.core.senstive.SensitiveService;
+import com.github.paicoding.forum.core.util.MapUtils;
+import com.github.paicoding.forum.service.comment.converter.CommentConverter;
+import com.github.paicoding.forum.service.comment.repository.dao.CommentDao;
+import com.github.paicoding.forum.service.comment.repository.entity.CommentDO;
+import com.github.paicoding.forum.service.comment.service.CommentReadService;
+import com.github.paicoding.forum.service.sensitive.service.SensitiveBypassService;
+import com.github.paicoding.forum.service.statistics.service.CountService;
+import com.github.paicoding.forum.service.user.repository.entity.UserFootDO;
+import com.github.paicoding.forum.service.user.service.UserFootService;
+import com.github.paicoding.forum.service.user.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+/**
+ * 评论Service
+ *
+ * @author louzai
+ * @date 2022-07-24
+ */
+@Service
+public class CommentReadServiceImpl implements CommentReadService {
+
+    @Autowired
+    private CommentDao commentDao;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private CountService countService;
+
+    @Autowired
+    private UserFootService userFootService;
+
+    @Autowired
+    private SensitiveService sensitiveService;
+
+    @Autowired
+    private SensitiveBypassService sensitiveBypassService;
+
+    @Override
+    public CommentDO queryComment(Long commentId) {
+        return commentDao.getById(commentId);
+    }
+
+    @Override
+    public List<TopCommentDTO> getArticleComments(Long articleId, PageParam page) {
+        // 1.查询一级评论
+        List<CommentDO> comments = commentDao.listTopCommentList(articleId, page);
+        if (CollectionUtils.isEmpty(comments)) {
+            return Collections.emptyList();
+        }
+        Map<Long, Boolean> bypassCache = new HashMap<>();
+        sanitizeCommentContents(comments, bypassCache);
+        // map 存 commentId -> 评论
+        Map<Long, TopCommentDTO> topComments = comments.stream().collect(Collectors.toMap(CommentDO::getId, CommentConverter::toTopDto));
+
+        // 2.统计每个一级评论的子评论数量
+        Map<Long, Integer> subCommentCountMap = commentDao.countSubComments(articleId, topComments.keySet());
+
+        // 3.首屏为每个一级评论预加载一条子评论，剩余的再懒加载
+        List<CommentDO> previewSubComments = commentDao.listFirstSubComments(articleId, topComments.keySet());
+        sanitizeCommentContents(previewSubComments, bypassCache);
+        buildCommentRelation(previewSubComments, topComments);
+
+        // 批量预加载所有评论用户，避免逐条 queryBasicUserInfo 造成 N+1
+        Map<Long, BaseUserInfoDTO> userMap = batchLoadCommentUsers(comments, previewSubComments);
+
+        // 4.挑出需要返回的数据，排序，并补齐对应的用户信息，最后排序返回
+        List<TopCommentDTO> result = new ArrayList<>();
+        comments.forEach(comment -> {
+            TopCommentDTO dto = topComments.get(comment.getId());
+            fillTopCommentPreviewInfo(dto, subCommentCountMap.getOrDefault(comment.getId(), 0), userMap);
+            result.add(dto);
+        });
+
+        // 返回结果根据时间进行排序
+        Collections.sort(result);
+        return result;
+    }
+
+    /**
+     * 构建父子评论关系
+     */
+    private void buildCommentRelation(List<CommentDO> subComments, Map<Long, TopCommentDTO> topComments) {
+        Map<Long, SubCommentDTO> subCommentMap = subComments.stream().collect(Collectors.toMap(CommentDO::getId, CommentConverter::toSubDto));
+        subComments.forEach(comment -> {
+            TopCommentDTO top = topComments.get(comment.getTopCommentId());
+            if (top == null) {
+                return;
+            }
+            SubCommentDTO sub = subCommentMap.get(comment.getId());
+            top.getChildComments().add(sub);
+            if (Objects.equals(comment.getTopCommentId(), comment.getParentCommentId())) {
+                return;
+            }
+
+            SubCommentDTO parent = subCommentMap.get(comment.getParentCommentId());
+            sub.setParentContent(parent == null ? "~~已删除~~" : parent.getCommentContent());
+        });
+    }
+
+    /**
+     * 填充评论对应的信息
+     *
+     * @param comment
+     */
+    private void fillTopCommentInfo(TopCommentDTO comment) {
+        fillCommentInfo(comment);
+        comment.getChildComments().forEach(this::fillCommentInfo);
+        Collections.sort(comment.getChildComments());
+        comment.setCommentCount(comment.getChildComments().size());
+        comment.setChildCommentCount(comment.getChildComments().size());
+        comment.setHasMoreChild(false);
+    }
+
+    /**
+     * 填充评论对应的信息，如用户信息，点赞数等
+     *
+     * @param comment
+     */
+    /**
+     * 批量预加载评论用户，避免逐条 queryBasicUserInfo 的 N+1。
+     * 任意异常（如全部用户缺失）优雅降级为空 map，填充时回退到逐条查询。
+     */
+    private Map<Long, BaseUserInfoDTO> batchLoadCommentUsers(List<CommentDO> tops, List<CommentDO> subs) {
+        List<Long> userIds = new ArrayList<>(tops.size() + subs.size());
+        tops.forEach(c -> userIds.add(c.getUserId()));
+        subs.forEach(c -> userIds.add(c.getUserId()));
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return userService.batchQueryBasicUserInfo(userIds).stream()
+                    .collect(Collectors.toMap(BaseUserInfoDTO::getUserId, u -> u, (a, b) -> a));
+        } catch (Exception e) {
+            return Collections.emptyMap();
+        }
+    }
+
+    private void fillCommentInfo(BaseCommentDTO comment) {
+        fillCommentInfo(comment, null);
+    }
+
+    private void fillCommentInfo(BaseCommentDTO comment, Map<Long, BaseUserInfoDTO> userMap) {
+        // map 命中即用（批量已查），未命中回退逐条查询，完整保留原有行为
+        BaseUserInfoDTO userInfoDO = (userMap != null && userMap.containsKey(comment.getUserId()))
+                ? userMap.get(comment.getUserId())
+                : userService.queryBasicUserInfo(comment.getUserId());
+        if (userInfoDO == null) {
+            // 如果用户注销，给一个默认的用户
+            comment.setUserName("默认用户");
+            comment.setUserPhoto("");
+        } else {
+            comment.setUserName(userInfoDO.getUserName());
+            comment.setUserPhoto(userInfoDO.getPhoto());
+        }
+
+        // 查询点赞数
+        Long praiseCount = countService.queryCommentPraiseCount(comment.getCommentId());
+        comment.setPraiseCount(praiseCount.intValue());
+
+        // 查询当前登录用于是否点赞过
+        Long loginUserId = ReqInfoContext.getReqInfo().getUserId();
+        if (loginUserId != null) {
+            // 判断当前用户是否点过赞
+            UserFootDO foot = userFootService.queryUserFoot(comment.getCommentId(), DocumentTypeEnum.COMMENT.getCode(), loginUserId);
+            comment.setPraised(foot != null && Objects.equals(foot.getPraiseStat(), PraiseStatEnum.PRAISE.getCode()));
+        } else {
+            comment.setPraised(false);
+        }
+
+        // 设置评论时间字符串
+        comment.setCommentTimeStr(com.github.paicoding.forum.core.util.DateUtil.time2day(comment.getCommentTime()));
+    }
+
+    /**
+     * 查询回帖最多的评论
+     *
+     * @param articleId
+     * @return
+     */
+    @Override
+    public TopCommentDTO queryHotComment(Long articleId) {
+        CommentDO comment = commentDao.getHotComment(articleId);
+        if (comment == null || Objects.equals(comment.getDeleted(), YesOrNoEnum.YES.getCode())) {
+            return null;
+        }
+
+        return buildTopCommentInfo(comment);
+    }
+
+
+    @Override
+    public List<TopCommentDTO> queryHighlightComments(Long articleId) {
+        List<CommentDO> comments = commentDao.listHighlightCommentList(articleId);
+        if (CollectionUtils.isEmpty(comments)) {
+            return Collections.emptyList();
+        }
+        sanitizeCommentContents(comments, new HashMap<>());
+        return comments.stream().map(CommentConverter::toTopDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public int queryCommentCount(Long articleId) {
+        return commentDao.commentCount(articleId);
+    }
+
+    @Override
+    public int queryTopCommentCount(Long articleId) {
+        return commentDao.topCommentCount(articleId);
+    }
+
+
+    /**
+     * 懒加载模式：填充一级评论信息（不包含子评论详情）
+     */
+    private void fillTopCommentPreviewInfo(TopCommentDTO comment, int childCount) {
+        fillTopCommentPreviewInfo(comment, childCount, null);
+    }
+
+    private void fillTopCommentPreviewInfo(TopCommentDTO comment, int childCount, Map<Long, BaseUserInfoDTO> userMap) {
+        fillCommentInfo(comment, userMap);
+        comment.getChildComments().forEach(c -> fillCommentInfo(c, userMap));
+        Collections.sort(comment.getChildComments());
+        comment.setCommentCount(childCount);
+        comment.setChildCommentCount(childCount);
+        comment.setHasMoreChild(childCount > comment.getChildComments().size());
+    }
+
+
+    /**
+     * 统计一级评论的子评论数量
+     *
+     * @param topCommentId 一级评论ID
+     * @return 子评论数量
+     */
+    @Override
+    public int countSubComments(Long topCommentId) {
+        return commentDao.countReplyByTopCommentId(topCommentId).intValue();
+    }
+
+
+    /**
+     * 分页查询子评论
+     *
+     * @param topCommentId 一级评论ID
+     * @param page 分页参数
+     * @return 子评论列表
+     */
+    @Override
+    public SubCommentListVO getSubComments(Long topCommentId, PageParam page) {
+        SubCommentListVO result = new SubCommentListVO();
+
+        // 1. 查询子评论总数
+        int total = countSubComments(topCommentId);
+        result.setTotal(total);
+
+        if (total == 0) {
+            result.setList(Collections.emptyList());
+            result.setHasMore(false);
+            return result;
+        }
+
+        // 2. 分页查询子评论
+        List<CommentDO> subCommentDOs = commentDao.listSubComments(topCommentId, page);
+        if (CollectionUtils.isEmpty(subCommentDOs)) {
+            result.setList(Collections.emptyList());
+            result.setHasMore(false);
+            return result;
+        }
+
+        // 3. 敏感词处理
+        Map<Long, Boolean> bypassCache = new HashMap<>();
+        sanitizeCommentContents(subCommentDOs, bypassCache);
+
+        // 4. 转换为DTO
+        List<SubCommentDTO> subComments = subCommentDOs.stream()
+                .map(CommentConverter::toSubDto)
+                .collect(Collectors.toList());
+
+        // 5. 构建父子关系（用于设置parentContent）
+        // 获取一级评论信息
+        CommentDO topComment = commentDao.getById(topCommentId);
+        if (topComment != null) {
+            sanitizeCommentContents(Collections.singletonList(topComment), bypassCache);
+            // 查询所有子评论（不分页）用于构建回复关系
+            List<CommentDO> allSubComments = commentDao.listSubCommentIdMappers(topComment.getArticleId(), Collections.singletonList(topCommentId));
+            sanitizeCommentContents(allSubComments, bypassCache);
+            Map<Long, SubCommentDTO> allSubCommentMap = allSubComments.stream()
+                    .collect(Collectors.toMap(CommentDO::getId, CommentConverter::toSubDto));
+
+            // 设置parentContent
+            subComments.forEach(sub -> {
+                if (Objects.equals(sub.getParentCommentId(), topCommentId)) {
+                    sub.setParentContent(topComment.getContent());
+                    return;
+                }
+                SubCommentDTO parent = allSubCommentMap.get(sub.getParentCommentId());
+                sub.setParentContent(parent == null ? "~~已删除~~" : parent.getCommentContent());
+            });
+        }
+
+        // 6. 按时间排序
+        Collections.sort(subComments, (a, b) -> Long.compare(a.getCommentTime(), b.getCommentTime()));
+
+        // 7. 填充用户信息、点赞等
+        subComments.forEach(this::fillCommentInfo);
+
+        result.setList(subComments);
+
+        // 8. 计算是否有更多
+        long loadedCount = (page.getPageNum() - 1) * page.getPageSize() + subComments.size();
+        result.setHasMore(loadedCount < total);
+
+        return result;
+    }
+
+
+    /**
+     * 查询顶级评论及之下的所有评论
+     *
+     * @param commentId 评论id
+     * @return 顶级评论及之下的所有评论
+     */
+    @Override
+    public TopCommentDTO queryTopComments(Long commentId) {
+        CommentDO topComment = commentDao.getById(commentId);
+        if (topComment == null) {
+            return null;
+        }
+        return buildTopCommentInfo(topComment);
+    }
+
+    private TopCommentDTO buildTopCommentInfo(CommentDO topComment) {
+        Map<Long, Boolean> bypassCache = new HashMap<>();
+        sanitizeCommentContents(Collections.singletonList(topComment), bypassCache);
+        // 1.获取顶级评论id
+        Long commentId = topComment.getId();
+        Map<Long, Integer> subCommentCountMap = commentDao.countSubComments(topComment.getArticleId(), Collections.singletonList(commentId));
+        List<CommentDO> previewSubComments = commentDao.listFirstSubComments(topComment.getArticleId(), Collections.singletonList(commentId));
+        sanitizeCommentContents(previewSubComments, bypassCache);
+
+        // 2.构建顶级评论实体
+        TopCommentDTO top = CommentConverter.toTopDto(topComment);
+
+        // 3.将首条子评论挂到顶级评论下，剩余的前端按需展开
+        Map<Long, TopCommentDTO> topComments = MapUtils.create(top.getCommentId(), top);
+        buildCommentRelation(previewSubComments, topComments);
+        TopCommentDTO dto = topComments.get(commentId);
+        fillTopCommentPreviewInfo(dto, subCommentCountMap.getOrDefault(commentId, 0));
+        return top;
+    }
+
+    private void sanitizeCommentContents(List<CommentDO> comments, Map<Long, Boolean> bypassCache) {
+        if (CollectionUtils.isEmpty(comments)) {
+            return;
+        }
+        comments.forEach(comment -> {
+            boolean bypass = bypassCache.computeIfAbsent(comment.getUserId(), sensitiveBypassService::shouldBypassByUserId);
+            if (!bypass) {
+                comment.setContent(sanitizeText(comment.getContent()));
+            }
+        });
+    }
+
+    private String sanitizeText(String text) {
+        return text == null ? null : sensitiveService.replace(text);
+    }
+}

@@ -1,0 +1,22 @@
+image:
+  abs-tmp-path: /tmp/storage/
+  web-img-path: /forum/image/
+  tmp-upload-path: /tmp/forum/
+  cdn-host:
+  oss:
+    type: local # 本地开发默认走本地存储；如需阿里云 OSS，请改为 ali 并配置下面的 ak/sk
+    prefix: paicoding/
+    endpoint: oss-cn-beijing.aliyuncs.com
+    ak: ${PAICODING_OSS_AK:}
+    sk: ${PAICODING_OSS_SK:}
+    bucket: itwanger-oss
+    host:
+
+spring:
+  web:
+    resources:
+      # 支持本地图片上传之后的链接，其中 file:///d的用于win系统，后面的file: 适用于mac/linux系统
+      static-locations:
+        - classpath:/static/
+        - file:///d:${image.abs-tmp-path}
+        - file:${image.abs-tmp-path}

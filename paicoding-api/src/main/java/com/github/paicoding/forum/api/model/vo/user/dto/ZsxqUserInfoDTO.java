@@ -1,0 +1,77 @@
+package com.github.paicoding.forum.api.model.vo.user.dto;
+
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.github.paicoding.forum.api.model.util.cdn.CdnImgSerializer;
+import com.github.paicoding.forum.api.model.util.cdn.CdnUtil;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+import lombok.experimental.Accessors;
+
+import java.io.Serializable;
+import java.util.Date;
+
+/**
+ * 基本用户信息
+ *
+ * @author YiHui
+ * @date 2022/9/26
+ */
+@Data
+@Accessors(chain = true)
+public class ZsxqUserInfoDTO implements Serializable {
+    private static final long serialVersionUID = 4802653694786272120L;
+
+    private Long id;
+
+    @ApiModelProperty("用户ID")
+    private Long userId;
+
+    // 这个是 userinfo 表中的 username
+    @ApiModelProperty("用户名")
+    private String name;
+
+    @ApiModelProperty("用户头像")
+    @JsonSerialize(using = CdnImgSerializer.class)
+    private String avatar;
+
+    // 这个是 user 表中的 username
+    @ApiModelProperty("用户编号")
+    private String userCode;
+
+    // 星球编号
+    @ApiModelProperty("星球编号")
+    private String starNumber;
+
+    // 邀请码
+    @ApiModelProperty("邀请码")
+    private String inviteCode;
+
+    // 邀请人数
+    @ApiModelProperty("邀请人数")
+    private Integer inviteNum;
+
+    // 状态
+    @ApiModelProperty("状态")
+    private Integer state;
+
+    // login_type
+    @ApiModelProperty("登录类型")
+    private Integer loginType;
+
+    // strategy
+    @ApiModelProperty("AI策略")
+    private Integer strategy;
+
+    // 过期时间 (日期字符串: yyyy-MM-dd)
+    @ApiModelProperty("过期时间")
+    private String expireTime;
+    
+    // 最后登录时间
+    @ApiModelProperty("最后登录时间")
+    private Date lastLoginTime;
+
+    public ZsxqUserInfoDTO setAvatar(String avatar) {
+        this.avatar = CdnUtil.autoTransCdn(avatar);
+        return this;
+    }
+}

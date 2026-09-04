@@ -1,0 +1,208 @@
+package com.github.paicoding.forum.core.util;
+
+import com.github.paicoding.forum.core.markdown.CustomAdmonitionBlockParser;
+import com.github.paicoding.forum.core.markdown.CustomAdmonitionExtension;
+import com.github.paicoding.forum.core.markdown.ImageCaptionExtension;
+import com.vladsch.flexmark.ext.admonition.AdmonitionExtension;
+import com.vladsch.flexmark.ext.autolink.AutolinkExtension;
+import com.vladsch.flexmark.ext.emoji.EmojiExtension;
+import com.vladsch.flexmark.ext.footnotes.FootnoteExtension;
+import com.vladsch.flexmark.ext.gfm.tasklist.TaskListExtension;
+import com.vladsch.flexmark.ext.gitlab.GitLabExtension;
+import com.vladsch.flexmark.ext.tables.TablesExtension;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.data.MutableDataSet;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
+import java.text.Normalizer;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * 微信搜索「沉默王二」，回复 Java
+ *
+ * @author 沉默王二
+ * @date 4/15/23
+ */
+public class MarkdownConverter {
+    private static final Pattern BILIBILI_BVID_PATTERN = Pattern.compile("(?i)(?:[?&])bvid=(BV[a-zA-Z0-9]+)");
+    private static final String BILIBILI_PLAYER_PREFIX = "https://player.bilibili.com/player.html";
+    private static final String BILIBILI_PROTOCOL_RELATIVE_PREFIX = "//player.bilibili.com/player.html";
+
+    /**
+     * markdown→HTML 渲染结果缓存：渲染是纯函数（同 markdown 必出同 HTML），且文章正文几乎不变，
+     * 但 flexmark 全量解析很耗时（占文章页 TTFB 的 30~50%）。按内容缓存，命中即免去重复解析。
+     * 文章被编辑后内容变化 → key 变化 → 自动重新渲染，不会有脏数据。
+     */
+    private static final Cache<String, String> HTML_CACHE = Caffeine.newBuilder()
+            .maximumSize(512)
+            .expireAfterAccess(Duration.ofHours(6))
+            .build();
+
+    // 定义一个静态方法，将 Markdown 文本转换为 HTML
+    public static String markdownToHtml(String markdown) {
+        if (markdown == null) {
+            return "";
+        }
+        return HTML_CACHE.get(markdown, MarkdownConverter::doMarkdownToHtml);
+    }
+
+    private static String doMarkdownToHtml(String markdown) {
+        markdown = renderVideoEmbeds(markdown);
+
+        // 创建一个 MutableDataSet 对象来配置 Markdown 解析器的选项
+        MutableDataSet options = new MutableDataSet();
+
+        // 添加各种 Markdown 解析器的扩展
+        options.set(Parser.EXTENSIONS, Arrays.asList(
+                AutolinkExtension.create(),     // 自动链接扩展，将URL文本转换为链接
+                EmojiExtension.create(),        // 表情符号扩展，用于解析表情符号
+                GitLabExtension.create(),       // GitLab特有的Markdown扩展
+                FootnoteExtension.create(),     // 脚注扩展，用于添加和解析脚注
+                TaskListExtension.create(),     // 任务列表扩展，用于创建任务列表
+                CustomAdmonitionExtension.create(),   // 提示框扩展，用于创建提示框
+                ImageCaptionExtension.create(), // 图片说明扩展，将alt文本显示为图片底部说明
+                TablesExtension.create()));     // 表格扩展，用于解析和渲染表格
+
+
+        // 使用配置的选项构建一个 Markdown 解析器
+        Parser parser = Parser.builder(options).build();
+        // 使用相同的选项构建一个 HTML 渲染器
+        HtmlRenderer renderer = HtmlRenderer.builder(options).build();
+
+        // 解析传入的 Markdown 文本并将其渲染为 HTML
+        return renderer.render(parser.parse(markdown));
+    }
+
+    /**
+     * 仅把独占一行的视频短语法转换为播放器；普通链接仍交给 Markdown 的 link/autolink 规则处理。
+     */
+    private static String renderVideoEmbeds(String markdown) {
+        if (markdown == null || markdown.isEmpty()) {
+            return markdown;
+        }
+
+        String[] lines = markdown.split("\\r?\\n", -1);
+        StringBuilder builder = new StringBuilder(markdown.length());
+        boolean inCodeFence = false;
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+            String trimmed = line.trim();
+
+            if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+                inCodeFence = !inCodeFence;
+                appendLine(builder, line, i);
+                continue;
+            }
+
+            String videoHtml = inCodeFence ? null : buildVideoHtml(trimmed);
+            appendLine(builder, videoHtml == null ? line : videoHtml, i);
+        }
+
+        return builder.toString();
+    }
+
+    private static void appendLine(StringBuilder builder, String line, int index) {
+        if (index > 0) {
+            builder.append('\n');
+        }
+        builder.append(line);
+    }
+
+    private static String buildVideoHtml(String line) {
+        if (line.startsWith("@[bilibili](") && line.endsWith(")")) {
+            String bvid = line.substring("@[bilibili](".length(), line.length() - 1);
+            if (bvid.matches("BV[a-zA-Z0-9]+")) {
+                return buildBilibiliVideoHtml(BILIBILI_PLAYER_PREFIX + "?bvid=" + bvid + "&page=1&high_quality=1&danmaku=0");
+            }
+        }
+
+        String rawBilibiliIframeHtml = buildRawBilibiliIframeHtml(line);
+        if (rawBilibiliIframeHtml != null) {
+            return rawBilibiliIframeHtml;
+        }
+
+        if (line.startsWith("@[youtube](") && line.endsWith(")")) {
+            String videoId = line.substring("@[youtube](".length(), line.length() - 1);
+            if (videoId.matches("[a-zA-Z0-9_-]+")) {
+                return "<div class=\"video-container\">\n"
+                        + "<iframe src=\"https://www.youtube.com/embed/" + videoId + "\" frameborder=\"0\" loading=\"lazy\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen=\"true\"></iframe>\n"
+                        + "</div>";
+            }
+        }
+
+        if (line.startsWith("@[tencent](") && line.endsWith(")")) {
+            String videoId = line.substring("@[tencent](".length(), line.length() - 1);
+            if (videoId.matches("[a-z0-9]+")) {
+                return "<div class=\"video-container\">\n"
+                        + "<iframe src=\"https://v.qq.com/txp/iframe/player.html?vid=" + videoId + "\" frameborder=\"0\" loading=\"lazy\" allowfullscreen=\"true\"></iframe>\n"
+                        + "</div>";
+            }
+        }
+
+        if (line.startsWith("@[aliyun-vod](") && line.endsWith(")")) {
+            String videoId = normalizeVideoId(line.substring("@[aliyun-vod](".length(), line.length() - 1));
+            if (videoId.matches("[a-zA-Z0-9_-]+")) {
+                return "<div class=\"video-container video-container--aliyun-vod\">\n"
+                        + "<video src=\"/video/play/redirect?videoId=" + videoId + "\" controls preload=\"metadata\"></video>\n"
+                        + "</div>";
+            }
+        }
+
+        return null;
+    }
+
+    private static String buildRawBilibiliIframeHtml(String line) {
+        if (!line.startsWith("<iframe") || !line.endsWith("</iframe>") || !line.contains("player.bilibili.com/player.html")) {
+            return null;
+        }
+
+        Document document = Jsoup.parseBodyFragment(line);
+        Element iframe = document.selectFirst("iframe[src]");
+        if (iframe == null) {
+            return null;
+        }
+
+        String playerSrc = normalizeBilibiliPlayerSrc(iframe.attr("src"));
+        if (playerSrc == null) {
+            return null;
+        }
+
+        Matcher matcher = BILIBILI_BVID_PATTERN.matcher(playerSrc);
+        if (matcher.find()) {
+            String bvid = matcher.group(1);
+            return buildBilibiliVideoHtml(BILIBILI_PLAYER_PREFIX + "?bvid=" + bvid + "&page=1&high_quality=1&danmaku=0");
+        }
+        return buildBilibiliVideoHtml(playerSrc);
+    }
+
+    private static String normalizeBilibiliPlayerSrc(String src) {
+        if (src == null) {
+            return null;
+        }
+        String trimmed = src.trim();
+        String normalized = trimmed.startsWith(BILIBILI_PROTOCOL_RELATIVE_PREFIX) ? "https:" + trimmed : trimmed;
+        if (!normalized.startsWith(BILIBILI_PLAYER_PREFIX) || !normalized.matches("[a-zA-Z0-9:/?&=._%#\\-]+")) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private static String buildBilibiliVideoHtml(String playerSrc) {
+        return "<div class=\"video-container video-container--bilibili\">\n"
+                + "<div class=\"video-container__stage\"><iframe src=\"" + playerSrc + "\" scrolling=\"no\" border=\"0\" frameborder=\"0\" framespacing=\"0\" loading=\"lazy\" allowfullscreen=\"true\"></iframe></div>\n"
+                + "</div>";
+    }
+
+    private static String normalizeVideoId(String videoId) {
+        return Normalizer.normalize(videoId, Normalizer.Form.NFKC).trim();
+    }
+}

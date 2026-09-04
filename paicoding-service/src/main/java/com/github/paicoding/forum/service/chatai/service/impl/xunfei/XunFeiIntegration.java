@@ -1,0 +1,422 @@
+package com.github.paicoding.forum.service.chatai.service.impl.xunfei;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.github.paicoding.forum.api.model.vo.chat.ChatItemVo;
+import com.github.paicoding.forum.core.util.JsonUtil;
+import com.github.paicoding.forum.service.chatai.constants.ChatConstants;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.WebSocket;
+import okhttp3.WebSocketListener;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Base64;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+/**
+ * 主体来自讯飞官方java sdk
+ *
+ * <a href="https://www.xfyun.cn/doc/spark/Web.html#_1-%E6%8E%A5%E5%8F%A3%E8%AF%B4%E6%98%8E"/>
+ *
+ * @author YiHui
+ * @date 2023/6/12
+ */
+@Slf4j
+@Setter
+@Component
+public class XunFeiIntegration {
+
+    @Autowired
+    private XunFeiConfig xunFeiConfig;
+
+    @Getter
+    private OkHttpClient okHttpClient;
+
+    @PostConstruct
+    public void init() {
+        okHttpClient = new OkHttpClient.Builder().build();
+    }
+
+    public String buildXunFeiUrl() {
+        try {
+            String authUrl = getAuthorizationUrl(xunFeiConfig.hostUrl, xunFeiConfig.apiKey, xunFeiConfig.apiSecret);
+            String url = authUrl.replace("https://", "wss://").replace("http://", "ws://");
+            return url;
+        } catch (Exception e) {
+            log.warn("讯飞url创建失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 构建授权url
+     *
+     * @param hostUrl
+     * @param apikey
+     * @param apisecret
+     * @return
+     * @throws Exception
+     */
+    public String getAuthorizationUrl(String hostUrl, String apikey, String apisecret) throws Exception {
+        //获取host
+        URL url = new URL(hostUrl);
+        //获取鉴权时间 date
+        SimpleDateFormat format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+        format.setTimeZone(TimeZone.getTimeZone("GMT"));
+        String date = format.format(new Date());
+        //获取signature_origin字段
+        String builder = "host: " + url.getHost() + "\n" +
+                "date: " + date + "\n" +
+                "GET " + url.getPath() + " HTTP/1.1";
+        //获得signatue
+        Charset charset = StandardCharsets.UTF_8;
+        Mac mac = Mac.getInstance("hmacsha256");
+        SecretKeySpec sp = new SecretKeySpec(apisecret.getBytes(charset), "hmacsha256");
+        mac.init(sp);
+        String signature = Base64.getEncoder().encodeToString(mac.doFinal(builder.getBytes(charset)));
+        //获得 authorization_origin
+        String authorizationOrigin = String.format("api_key=\"%s\",algorithm=\"%s\",headers=\"%s\",signature=\"%s\"", apikey, "hmac-sha256", "host date request-line", signature);
+        //获得authorization
+        String authorization = Base64.getEncoder().encodeToString(authorizationOrigin.getBytes(charset));
+        //获取httpurl
+        HttpUrl httpUrl = HttpUrl.parse("https://" + url.getHost() + url.getPath()).newBuilder().
+                addQueryParameter("authorization", authorization).
+                addQueryParameter("date", date).
+                addQueryParameter("host", url.getHost()).
+                build();
+        return httpUrl.toString();
+    }
+
+    public String buildSendMsg(String uid, String question) {
+        JsonObject frame = new JsonObject();
+        JsonObject header = new JsonObject();
+        JsonObject chat = new JsonObject();
+        JsonObject parameter = new JsonObject();
+        JsonObject payload = new JsonObject();
+        JsonObject message = new JsonObject();
+        JsonObject text = new JsonObject();
+        JsonArray ja = new JsonArray();
+
+        //填充header
+        header.addProperty("app_id", xunFeiConfig.appId);
+        header.addProperty("uid", uid);
+        //填充parameter
+        chat.addProperty("domain", xunFeiConfig.domain);
+        chat.addProperty("random_threshold", 0);
+        chat.addProperty("max_tokens", 1024);
+        chat.addProperty("auditing", "default");
+        parameter.add("chat", chat);
+        //填充payload
+        text.addProperty("role", "user");
+        text.addProperty("content", question);
+        ja.add(text);
+        message.add("text", ja);
+        payload.add("message", message);
+        frame.add("header", header);
+        frame.add("parameter", parameter);
+        frame.add("payload", payload);
+        return frame.toString();
+    }
+
+    /**
+     * 结合上下文的回答
+     *
+     * @param uid
+     * @param items
+     * @return
+     */
+    public String buildSendMsg(String uid, List<ChatItemVo> items) {
+        JsonObject frame = new JsonObject();
+        JsonObject header = new JsonObject();
+        JsonObject chat = new JsonObject();
+        JsonObject parameter = new JsonObject();
+        JsonObject payload = new JsonObject();
+        JsonObject message = new JsonObject();
+        JsonArray ja = new JsonArray();
+
+        //填充header
+        header.addProperty("app_id", xunFeiConfig.appId);
+        header.addProperty("uid", uid);
+        //填充parameter
+        chat.addProperty("domain", xunFeiConfig.domain);
+        chat.addProperty("random_threshold", 0);
+        chat.addProperty("max_tokens", 2048);
+        chat.addProperty("auditing", "default");
+        parameter.add("chat", chat);
+
+        //填充payload
+        for (int i = items.size() - 1; i >= 0; i--) {
+            ChatItemVo item = items.get(i);
+            ja.addAll(toText(item));
+        }
+
+        message.add("text", ja);
+        payload.add("message", message);
+        frame.add("header", header);
+        frame.add("parameter", parameter);
+        frame.add("payload", payload);
+        return frame.toString();
+    }
+
+    /**
+     * 构建提问消息
+     *
+     * @param item
+     * @return
+     */
+    private static JsonArray toText(ChatItemVo item) {
+        JsonArray ary = new JsonArray();
+
+        if (item.getQuestion().startsWith(ChatConstants.PROMPT_TAG)) {
+            // 提示词
+            JsonObject obj = new JsonObject();
+            obj.addProperty("role", "user");
+            obj.addProperty("content", item.getQuestion().substring(ChatConstants.PROMPT_TAG.length()));
+            ary.add(obj);
+            return ary;
+        }
+
+        // 用户问答消息
+        JsonObject obj = new JsonObject();
+        obj.addProperty("role", "user");
+        obj.addProperty("content", item.getQuestion());
+        ary.add(obj);
+        if (StringUtils.isNotBlank(item.getAnswer())) {
+            JsonObject obj2 = new JsonObject();
+            obj2.addProperty("role", "assistant");
+            obj2.addProperty("content", item.getAnswer());
+            ary.add(obj);
+        }
+        return ary;
+    }
+
+    public ResponseData parse2response(String text) {
+        return JsonUtil.toObj(text, ResponseData.class);
+    }
+
+    public String testConnection(String question) {
+        if (StringUtils.isBlank(xunFeiConfig.hostUrl) || StringUtils.isBlank(xunFeiConfig.appId)
+                || StringUtils.isBlank(xunFeiConfig.apiKey) || StringUtils.isBlank(xunFeiConfig.apiSecret)) {
+            throw new IllegalStateException("讯飞配置不完整，请先补齐 hostUrl/appId/apiKey/apiSecret");
+        }
+
+        final String url = buildXunFeiUrl();
+        if (StringUtils.isBlank(url)) {
+            throw new IllegalStateException("讯飞鉴权地址生成失败");
+        }
+
+        final CountDownLatch latch = new CountDownLatch(1);
+        final AtomicReference<String> result = new AtomicReference<String>();
+        final AtomicReference<String> error = new AtomicReference<String>();
+        final String prompt = StringUtils.defaultIfBlank(question, "请只回复连接成功");
+
+        Request request = new Request.Builder().url(url).build();
+        final WebSocket[] socketHolder = new WebSocket[1];
+        socketHolder[0] = okHttpClient.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onOpen(WebSocket webSocket, Response response) {
+                webSocket.send(buildSendMsg("admin-ai-test", prompt));
+            }
+
+            @Override
+            public void onMessage(WebSocket webSocket, String text) {
+                ResponseData responseData = parse2response(text);
+                if (responseData == null || responseData.getHeader() == null) {
+                    error.set("讯飞返回结果为空");
+                } else if (!responseData.successReturn()) {
+                    error.set("讯飞调用失败:" + responseData.getHeader().getMessage());
+                } else {
+                    StringBuilder msg = new StringBuilder();
+                    if (responseData.getPayload() != null && responseData.getPayload().getChoices() != null
+                            && responseData.getPayload().getChoices().getText() != null) {
+                        responseData.getPayload().getChoices().getText().forEach(s -> {
+                            if (s.getReasoning_content() != null) {
+                                msg.append(s.getReasoning_content());
+                            }
+                            if (s.getContent() != null) {
+                                msg.append(s.getContent());
+                            }
+                        });
+                    }
+                    result.set(StringUtils.defaultIfBlank(msg.toString(), "连接成功"));
+                }
+                webSocket.close(1000, "test finished");
+                latch.countDown();
+            }
+
+            @Override
+            public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+                error.set("讯飞连接失败:" + t.getMessage());
+                latch.countDown();
+            }
+        });
+
+        try {
+            if (!latch.await(12, TimeUnit.SECONDS)) {
+                socketHolder[0].cancel();
+                throw new IllegalStateException("讯飞连通性测试超时");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("讯飞连通性测试被中断");
+        }
+
+        if (StringUtils.isNotBlank(error.get())) {
+            throw new IllegalStateException(error.get());
+        }
+        return StringUtils.defaultIfBlank(result.get(), "连接成功");
+    }
+
+
+    @Component
+    @ConfigurationProperties(prefix = "xunfei")
+    @Data
+    public static class XunFeiConfig {
+        public String hostUrl = "http://spark-api.xf-yun.com/v1.1/chat";
+        public String appId = "";
+        public String apiKey = "";
+        public String apiSecret = "";
+        public String  APIPassword = "";
+        // 指定访问的领域,general指向V1.5版本 generalv2指向V2版本。注意：不同的取值对应的url也不一样！
+        public String domain = "general";
+    }
+
+    @Data
+    public static class ResponseData {
+        private Header header;
+        private Payload payload;
+
+        public boolean successReturn() {
+            return header != null && header.code == 0;
+        }
+
+        /**
+         * 首次返回结果
+         *
+         * @return
+         */
+        public boolean firstResonse() {
+            return header != null && "0".equalsIgnoreCase(header.status);
+        }
+
+        /**
+         * 判断是否是最后一次返回的结果
+         *
+         * @return
+         */
+        public boolean endResponse() {
+            return header != null && "2".equalsIgnoreCase(header.status);
+        }
+    }
+
+    @Data
+    public static class Header {
+        /**
+         * 错误码，0表示正常，非0表示出错；详细释义可在接口说明文档最后的错误码说明了解
+         */
+        private int code;
+        /**
+         * 会话是否成功的描述信息
+         */
+        private String message;
+        /**
+         * 会话的唯一id，用于讯飞技术人员查询服务端会话日志使用,出现调用错误时建议留存该字段
+         */
+        private String sid;
+        /**
+         * 会话状态，取值为[0,1,2]；0代表首次结果；1代表中间结果；2代表最后一个结果
+         */
+        private String status;
+    }
+
+    @Data
+    public static class Payload {
+        private Choices choices;
+        private Usage usage;
+    }
+
+    @Data
+    public static class Choices {
+        /**
+         * 文本响应状态，取值为[0,1,2]; 0代表首个文本结果；1代表中间文本结果；2代表最后一个文本结果
+         */
+        private int status;
+    /**
+         * 返回的数据序号，取值为[0,9999999]
+         */
+        private int seq;
+
+        private List<ChoicesText> text;
+    }
+
+    @Data
+public static class ChoicesText {
+        /**
+         * 结果序号，取值为[0,10]; 当前为保留字段，开发者可忽略
+         */
+        private int index;
+        /**
+         * 角色标识，固定为assistant，标识角色为AI
+         */
+        private String role;
+        /**
+         * AI的回答内容
+         */
+        private String content;
+
+        private String reasoning_content;
+    }
+
+    @Data
+    public static class Usage {
+        private UsageText text;
+    }
+
+    @Data
+    public static class UsageText {
+        /**
+         * 保留字段，可忽略
+         */
+        @JsonAlias("question_tokens")
+        private int questionTokens;
+        /**
+         * 包含历史问题的总tokens大小
+         */
+        @JsonAlias("prompt_tokens")
+        private int promptTokens;
+        /**
+         * 回答的tokens大小
+         */
+        @JsonAlias("completion_tokens")
+        private int completionTokens;
+        /**
+         * prompt_tokens和completion_tokens的和，也是本次交互计费的tokens大小
+         */
+        @JsonAlias("total_tokens")
+        private int totalTokens;
+    }
+}

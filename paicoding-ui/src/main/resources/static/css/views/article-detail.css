@@ -1,0 +1,485 @@
+/* 确保文章内容区域允许文本选择 */
+#articleContent {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* 确保评论图标在移动端可点击 */
+#comment-icon {
+  -webkit-touch-callout: default;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.detail-content-title {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 26px;
+  line-height: 31px;
+  vertical-align: bottom;
+  margin-bottom: 12px;
+}
+
+.detail-content-title-other-wrap {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  color: var(--pai-color-999-gray);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--pai-hr-color-1);
+}
+
+.detail-content-title-other-img {
+  height: 22px;
+  width: 22px;
+  border-radius: 50%;
+}
+.detail-content-title-other-name {
+  color: #62749f;
+  margin-left: 8px;
+  margin-right: 16px;
+}
+.detail-content-title-other-time {
+  margin-right: 16px;
+}
+
+.detail-content-title-other-look {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 28px;
+  padding: 0 11px;
+  height: 20px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: #3973ff;
+  border: 1px solid #3973ff;
+  cursor: pointer;
+}
+
+.com-opt-link,
+.com-opt-text {
+  display: inline-block;
+  vertical-align: middle;
+  color: var(--pai-color-999-gray);
+}
+
+[class*="com-i-"],
+[class^="com-i-"] {
+  display: inline-block;
+  vertical-align: middle;
+  width: 20px;
+  height: 20px;
+  background-size: 100% auto;
+}
+
+.com-opt-link:hover .com-i-edit,
+.com-opt-link:hover .com-i-delete {
+  fill: var(--pai-brand-2-hover);
+}
+
+.com-opt-link .com-i-edit,
+.com-opt-link .com-i-delete {
+  fill: var(--pai-color-999-gray);
+}
+
+.detail-content-title-edit [class*="com-i-"],
+.detail-content-title-edit [class^="com-i-"] {
+  position: relative;
+}
+
+.detail-content-title-edit {
+  position: absolute;
+  right: 0;
+  top: 0;
+  line-height: 20px;
+}
+
+.article-detail .needlock {
+  width: 100%;
+  text-align: center;
+  background-image: linear-gradient(-180deg, rgba(255, 255, 255, 0) 0%, #fff 70%);
+  padding-bottom: 24px;
+  position: relative;
+  padding-top: 160px;
+  margin-top: -220px;
+  z-index: 2;
+  bottom: -1px;
+}
+
+.article-detail .login-readmore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+  padding: 0 28px;
+  color: var(--pai-brand-2-hover);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.article-detail .login-readmore:hover {
+  color: #ff6b00;
+}
+
+.article-detail .needlock.needlock--star {
+  background-image: none;
+  padding-top: 24px;
+  padding-bottom: 0;
+  margin-top: 24px;
+  bottom: auto;
+}
+
+.article-detail .star-access-card {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px 24px 24px;
+  border: 1px solid rgba(255, 123, 0, 0.14);
+  border-radius: 0;
+  background:
+    radial-gradient(circle at top right, rgba(255, 123, 0, 0.1), transparent 32%),
+    linear-gradient(180deg, #fffaf4 0%, #ffffff 32%);
+  box-shadow: 0 18px 40px rgba(31, 35, 41, 0.08);
+  text-align: left;
+}
+
+.article-detail .star-access-card__banner-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.article-detail .star-access-card__banner {
+  display: block;
+  margin-bottom: 0;
+  padding: 0;
+  border-radius: 0;
+  color: var(--pai-brand-2-hover);
+  font-size: 28px;
+  line-height: 1.45;
+  font-weight: 700;
+  flex: 1 1 auto;
+}
+
+.article-detail .star-access-card__banner:hover {
+  color: #ff6b00;
+}
+
+.article-detail .star-access-card__banner-action {
+  align-self: flex-start;
+  flex: 0 1 auto;
+  min-width: min(100%, 260px);
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.5;
+  justify-content: center;
+  text-decoration: none;
+  text-align: center;
+}
+
+.article-detail .star-access-card__header h2 {
+  margin: 14px 0 10px;
+  font-size: 22px;
+  line-height: 1.4;
+  color: var(--pai-color-000-normal);
+}
+
+.article-detail .star-access-card__header p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--pai-color-666-gray);
+}
+
+.article-detail .star-access-card__layout {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.article-detail .star-access-card__main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 14px;
+}
+
+.article-detail .star-access-card__summary {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--pai-color-222-normal);
+  padding: 14px 16px;
+  border-radius: 0;
+  background: linear-gradient(135deg, rgba(255, 123, 0, 0.08), rgba(255, 123, 0, 0.02));
+  overflow-wrap: anywhere;
+}
+
+.article-detail .star-access-card__steps {
+  padding: 14px 16px;
+  background: rgba(255, 123, 0, 0.03);
+  border: 1px solid rgba(255, 123, 0, 0.08);
+  border-radius: 0;
+  overflow-wrap: anywhere;
+}
+
+.article-detail .star-access-card__steps p {
+  margin-bottom: 10px;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.article-detail .star-access-card__steps p:last-child {
+  margin-bottom: 0;
+}
+
+.article-detail .star-access-card__steps strong {
+  display: inline-block;
+  min-width: 22px;
+  color: var(--pai-brand-2-hover);
+}
+
+.article-detail .star-access-card__qrcode {
+  flex: 0 0 260px;
+  width: 260px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.article-detail .star-access-card__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.article-detail .star-access-card__actions .c-btn {
+  min-width: 220px;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.article-detail .join-star {
+  font-size: small;
+}
+
+.article-detail .join-star p {
+  margin-bottom: 8px;
+}
+
+.article-detail .join-star img {
+  cursor: zoom-in;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 0;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+.article-detail .star-access-card .c-btn {
+  border-radius: 0;
+}
+
+/* home 适配 */
+@media screen and (max-width: 768px) {
+  .layout-side,
+  .article-suspended-panel {
+    display: none !important;
+  }
+  .layout-main {
+    padding: 0 !important;
+  }
+  .article-suspended-panel-md {
+    visibility: visible;
+  }
+  .foot {
+    margin-bottom: 72px;
+  }
+
+  .article-detail .needlock {
+    padding-top: 88px;
+    margin-top: -150px;
+  }
+
+  .article-detail .login-readmore {
+    min-height: 52px;
+    padding: 0 18px;
+    font-size: 22px;
+  }
+
+  .article-detail .needlock.needlock--star {
+    padding-top: 16px;
+    margin-top: 16px;
+  }
+
+  .article-detail .star-access-card {
+    padding: 16px;
+    border-radius: 0;
+  }
+
+  .article-detail .star-access-card__banner-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .article-detail .star-access-card__banner {
+    padding: 0;
+    border-radius: 0;
+    font-size: 16px;
+  }
+
+  .article-detail .star-access-card__banner-action {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .article-detail .star-access-card__layout {
+    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .article-detail .star-access-card__qrcode {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 260px;
+    margin: 0 auto;
+  }
+
+  .article-detail .star-access-card__actions .c-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .article-detail .join-star img {
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+  }
+}
+
+/* 视频容器样式 */
+.article-content .video-container {
+  position: relative;
+  width: 100%;
+  max-width: 860px;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  margin: 24px auto;
+  padding-bottom: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.article-content .video-container.video-container--bilibili {
+  aspect-ratio: auto;
+  margin: 30px auto 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.article-content .video-container iframe,
+.article-content .video-container video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: #000;
+}
+
+.article-content .video-container.video-container--bilibili .video-container__stage iframe {
+  border-radius: inherit;
+}
+
+@supports not (aspect-ratio: 16 / 9) {
+  .article-content .video-container {
+    height: 0;
+    padding-bottom: 56.25%;
+  }
+
+  .article-content .video-container.video-container--bilibili {
+    height: auto;
+    padding: 0;
+  }
+}
+
+/* 移动端视频容器优化 */
+@media screen and (max-width: 768px) {
+  .article-content .video-container {
+    margin: 18px auto;
+    border-radius: 6px;
+  }
+
+  .article-content .video-container.video-container--bilibili {
+    margin: 22px auto 26px;
+    padding: 0;
+    border-radius: 10px;
+  }
+}
+
+/* 文章详情页目录样式优化 - 解决双滚动条问题 */
+.article-detail {
+  position: relative;
+}
+
+.article-detail .toc-container {
+  background-color: transparent; /* 背景透明，让下层滚动条可见 */
+  padding: 0;
+  position: fixed;
+  top: 90px; /* 初始值，会被JS动态调整 */
+  right: 0;
+  width: 300px;
+  z-index: 5;
+  /* 不设置max-height和overflow，让内层.widget处理滚动 */
+}
+
+.article-detail .toc-container .widget {
+  background-color: var(--pai-color-fff-normal); /* 背景色设置在内部容器 */
+  padding: 20px;
+  padding-right: 8px; /* 给内容留一点右侧空间 */
+  box-sizing: border-box;
+  max-height: calc(100vh - 120px); /* 设置最大高度，会被JS动态调整 */
+  overflow-y: auto; /* 滚动在widget层 */
+}
+
+.article-detail #quoteCommentSidebar {
+  top: 0;
+  margin-top: 0;
+}
+
+.article-detail #quoteCommentSidebar .widget {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 移除arCatalog-body的滚动，让它和arCatalog-line作为一个整体 */
+.article-detail .toc-container .arCatalog-body {
+  overflow-y: visible !important; /* 覆盖global.css和JS设置的overflow */
+  max-height: none !important; /* 移除高度限制 */
+  height: auto !important; /* 让高度自适应内容 */
+}

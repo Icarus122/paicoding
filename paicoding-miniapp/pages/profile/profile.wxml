@@ -1,0 +1,89 @@
+<view class="profile-container">
+  <image src="/assets/images/bg.png" class="bg" mode="widthFix" />
+
+  <t-navbar class="navbar" />
+
+  <view class="base-info">
+    <t-avatar image="{{avatarUrl || '/assets/images/avatar.png'}}" class="avatar" size="66px" />
+    <view wx:if="{{loggedIn}}" class="info">
+      <view class="nick-name-wrapper">
+        <text class="nick-name">{{nickName}}</text>
+        <view  class="edit-button" bindtap="showEdit">
+          <t-icon name="edit-2" color="#aaa" size="40rpx" />
+        </view>
+      </view>
+      <text class="profile">{{profile||'上技术派 AI时代不迷路'}}</text>
+    </view>
+    <view wx:else class="login-entry" bindtap="goToLogin">
+      <text class="login-text">立即登录</text>
+    </view>
+  </view>
+
+  <view class="stats-card">
+    <image src="https://cdn.paicoding.com/stutymore/pai-coding-card.png" class="bg" mode="widthFix" />
+    <view class="wrapper">
+      <view class="item">
+        <text class="item-value">{{statistics.joinDayCount}}</text>
+        <text class="item-label">加入天数</text>
+      </view>
+      <view class="item" data-tab="follow" bindtap="openFollowing">
+        <text class="item-value">{{statistics.followCount}}</text>
+        <text class="item-label">关注</text>
+      </view>
+      <view class="item" data-tab="fans" bindtap="openFollowing">
+        <text class="item-value">{{statistics.fansCount}}</text>
+        <text class="item-label">粉丝</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="flex-col-ic" bindtap="openMyArticles">
+      <image src="/assets/images/article.png" class="icon" />
+      <text class="label">我的文章</text>
+    </view>
+    <view class="flex-col-ic" data-tab="follow" bindtap="openFollowing">
+      <image src="/assets/images/favorite.png" class="icon" />
+      <text class="label">我的关注</text>
+    </view>
+    <view class="flex-col-ic" bindtap="openCollections">
+      <image src="/assets/images/collect.png" class="icon" />
+      <text class="label">我的收藏</text>
+    </view>
+    <view class="flex-col-ic" bindtap="openHistory">
+      <image src="/assets/images/history.png" class="icon" />
+      <text class="label">浏览历史</text>
+    </view>
+  </view>
+
+  <view class="card list">
+    <view class="row">
+      <image src="/assets/images/published.png" class="icon" />
+      <text class="label">已发布文章</text>
+      <text class="value">{{statistics.articleCount}}<text class="unit">篇</text></text>
+    </view>
+
+    <view class="row">
+      <image src="/assets/images/favorite-outline.png" class="icon" />
+      <text class="label">文章被点赞</text>
+      <text class="value">{{statistics.praiseCount}}<text class="unit">次</text></text>
+    </view>
+
+    <view class="row">
+      <image src="/assets/images/read.png" class="icon" />
+      <text class="label">文章被阅读</text>
+      <text class="value">{{statistics.readCount}}<text class="unit">次</text></text>
+    </view>
+
+    <view class="row">
+      <image src="/assets/images/collect-outline.png" class="icon" />
+      <text class="label">文章被收藏</text>
+      <text class="value">{{statistics.collectionCount}}<text class="unit">篇</text></text>
+    </view>
+  </view>
+
+  <view wx:if="{{loggedIn}}" class="card logout-btn" bindtap="logout">
+    <image src="/assets/images/logout.png" class="icon" />
+    <text>退出登录</text>
+  </view>
+</view>

@@ -1,0 +1,115 @@
+package com.github.paicoding.forum.service.article.repository.dao;
+
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.paicoding.forum.service.article.repository.entity.ColumnArticleDO;
+import com.github.paicoding.forum.service.article.repository.mapper.ColumnArticleMapper;
+import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
+
+import javax.annotation.Resource;
+import java.util.List;
+
+/**
+ * 微信搜索「沉默王二」，回复 Java
+ *
+ * @author 沉默王二
+ * @date 5/30/23
+ */
+@Repository
+public class ColumnArticleDao extends ServiceImpl<ColumnArticleMapper, ColumnArticleDO> {
+    @Resource
+    private ColumnArticleMapper columnArticleMapper;
+
+    /**
+     * 返回专栏最大更新章节数
+     *
+     * @param columnId
+     * @return 专栏内无文章时，返回0；否则返回当前最大的章节数
+     */
+    public int selectMaxSection(Long columnId) {
+        return columnArticleMapper.selectMaxSection(columnId);
+    }
+
+    /**
+     * 根据文章id，查询再所属的专栏信息
+     * fixme: 如果一篇文章，在多个专栏内，就会有问题
+     *
+     * @param articleId
+     * @return
+     */
+    public ColumnArticleDO selectColumnArticleByArticleId(Long articleId) {
+        List<ColumnArticleDO> list = lambdaQuery()
+                .eq(ColumnArticleDO::getArticleId, articleId)
+                .list();
+        if (CollectionUtils.isEmpty(list)) {
+            return null;
+        }
+        return list.get(0);
+    }
+
+    public List<ColumnArticleDO> listByArticleId(Long articleId) {
+        return lambdaQuery()
+                .eq(ColumnArticleDO::getArticleId, articleId)
+                .list();
+    }
+
+    public ColumnArticleDO selectBySection(Long columnId, Integer sort) {
+        return lambdaQuery()
+                .eq(ColumnArticleDO::getColumnId, columnId)
+                .eq(ColumnArticleDO::getSection, sort)
+                .one();
+    }
+
+
+    public ColumnArticleDO selectOneByGroupId(Long groupId) {
+        return lambdaQuery()
+                .eq(ColumnArticleDO::getGroupId, groupId)
+                .one();
+    }
+
+    public void updateColumnGroupId(Long groupId, Long columnId) {
+        lambdaUpdate()
+                .eq(ColumnArticleDO::getColumnId, columnId)
+                .set(ColumnArticleDO::getGroupId, groupId)
+                .update();
+    }
+
+    public ColumnArticleDO selectColumnArticle(Long columnId, Long articleId) {
+        return lambdaQuery()
+                .eq(ColumnArticleDO::getColumnId, columnId)
+                .eq(ColumnArticleDO::getArticleId, articleId)
+                .one();
+    }
+
+    public ColumnArticleDO selectColumnArticleByArticleSlug(Long columnId, String articleSlug) {
+        return columnArticleMapper.getColumnArticleByArticleSlug(columnId, articleSlug);
+    }
+
+    public boolean existsArticleSlug(Long columnId, String articleSlug, Long excludeArticleId) {
+        return columnArticleMapper.countColumnArticleByArticleSlug(columnId, articleSlug, excludeArticleId) > 0;
+    }
+
+    public void updateColumnArticleSection(Long id, Integer section) {
+        lambdaUpdate().eq(ColumnArticleDO::getId, id)
+                .set(ColumnArticleDO::getSection, section)
+                .update();
+    }
+
+    public void updateColumnArticleSection(Long columnId, Long articleId, Long groupId, Integer section) {
+        lambdaUpdate()
+                .eq(ColumnArticleDO::getColumnId, columnId)
+                .eq(ColumnArticleDO::getArticleId, articleId)
+                .set(ColumnArticleDO::getSection, section)
+                .set(ColumnArticleDO::getGroupId, groupId)
+                .update();
+    }
+
+    public void updateColumnArticleGESectionToAdd(Long columnId, Long groupId, Integer section, Integer add) {
+        lambdaUpdate()
+                .eq(ColumnArticleDO::getColumnId, columnId)
+                .eq(ColumnArticleDO::getGroupId, groupId)
+                .ge(ColumnArticleDO::getSection, section)
+                .setSql("section = section + " + add)
+                .update();
+    }
+}

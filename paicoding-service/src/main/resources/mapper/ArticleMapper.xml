@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.github.paicoding.forum.service.article.repository.mapper.ArticleMapper">
+
+    <sql id="limit">
+        <if test="pageParam != null">
+            limit #{pageParam.offset}, #{pageParam.limit}
+        </if>
+    </sql>
+
+    <select id="listArticlesOrderById" resultType="com.github.paicoding.forum.api.model.vo.article.dto.SimpleArticleDTO">
+        select id, user_id as authorId, title, update_time as createTime from article
+        where id > #{lastId}
+        and status =${@com.github.paicoding.forum.api.model.enums.PushStatusEnum@ONLINE.code}
+        and deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+        order by id asc limit #{size}
+    </select>
+
+    <select id="listArticlesByReadCounts"
+            resultType="com.github.paicoding.forum.api.model.vo.article.dto.SimpleArticleDTO">
+        select rc.document_id as id, a.user_id as authorId, a.title as title, a.create_time as createTime,
+        a.url_slug as urlSlug
+        from read_count as rc left join article as a on rc.document_id = a.id
+        where rc.document_type = ${@com.github.paicoding.forum.api.model.enums.DocumentTypeEnum@ARTICLE.code}
+        and a.status = ${@com.github.paicoding.forum.api.model.enums.PushStatusEnum@ONLINE.code}
+        and a.deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code} order by rc.cnt desc
+        <include refid="limit"/>
+    </select>
+
+    <select id="listArticleByCategoryAndTags"
+            resultType="com.github.paicoding.forum.service.article.repository.entity.ReadCountDO">
+        select DISTINCT(a.id) as documentId, rc.cnt as cnt from article a
+        left join article_tag as t on a.id = t.article_id
+        left join read_count rc on rc.document_id  = a.id
+        where rc.document_type = ${@com.github.paicoding.forum.api.model.enums.DocumentTypeEnum@ARTICLE.code}
+        and a.status = ${@com.github.paicoding.forum.api.model.enums.PushStatusEnum@ONLINE.code}
+        and a.deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+        <if test="categoryId != null">
+            and a.category_id = #{categoryId}
+        </if>
+        and t.tag_id in
+        <if test="tags != null and tags.size > 0">
+            <foreach collection="tags" item="tagId" open="(" close=")" separator=",">
+                #{tagId}
+            </foreach>
+        </if>
+        order by rc.cnt desc, a.id desc
+        <include refid="limit"/>
+    </select>
+
+    <select id="listArticlesByUserIdOrderByReadCounts"
+            resultType="com.github.paicoding.forum.api.model.vo.article.dto.SimpleArticleDTO">
+        select rc.document_id as id, a.user_id as authorId, a.title as title, a.create_time as createTime,
+        a.url_slug as urlSlug
+        from read_count as rc left join article as a on rc.document_id = a.id
+        where rc.document_type = ${@com.github.paicoding.forum.api.model.enums.DocumentTypeEnum@ARTICLE.code}
+        and a.status = ${@com.github.paicoding.forum.api.model.enums.PushStatusEnum@ONLINE.code}
+        and a.deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code} and a.user_id = #{userId} order
+        by rc.cnt desc
+        <include refid="limit"/>
+    </select>
+
+    <select id="listYearArticleByUserId"
+            resultType="com.github.paicoding.forum.api.model.vo.article.dto.YearArticleDTO">
+        select DATE_FORMAT(create_time, "%Y") as year, count(*) as articleCount
+        from article
+        where user_id = #{userId}
+          and status = ${@com.github.paicoding.forum.api.model.enums.PushStatusEnum@ONLINE.code}
+          and deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+        group by year
+    </select>
+
+    <sql id="articlesByParams">
+        where a.deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+        <if test="searchParams.title != null and searchParams.title != ''">
+            and a.title like concat('%', #{searchParams.title}, '%')
+        </if>
+        <if test="searchParams.userName != null and searchParams.userName != ''">
+            and u.user_name like concat('%', #{searchParams.userName}, '%')
+        </if>
+        <if test="searchParams.officalStat != null and searchParams.officalStat != -1">
+            and a.offical_stat = #{searchParams.officalStat}
+        </if>
+        <if test="searchParams.toppingStat != null and searchParams.toppingStat != -1">
+            and a.topping_stat = #{searchParams.toppingStat}
+        </if>
+        <if test="searchParams.status != null and searchParams.status != -1">
+            and a.status = #{searchParams.status}
+        </if>
+        <if test="searchParams.urlSlug != null and searchParams.urlSlug != ''">
+            and a.url_slug = #{searchParams.urlSlug}
+        </if>
+        <if test="searchParams.columnId != null and searchParams.columnId != -1">
+            and exists (
+                select 1 from column_article ca
+                where ca.article_id = a.id and ca.column_id = #{searchParams.columnId}
+            )
+        </if>
+    </sql>
+
+    <select id="listArticlesByParams"
+            resultType="com.github.paicoding.forum.api.model.vo.article.dto.ArticleAdminDTO">
+        select a.id as article_id, a.title, a.short_title, a.url_slug, a.offical_stat,
+               a.topping_stat, a.status, a.cream_stat, a.picture as cover,
+               a.update_time,
+               u.user_id as author, u.user_name as author_name,u.photo as author_avatar
+        from article a
+        left join user_info u on a.user_id = u.user_id
+        <include refid="articlesByParams"/>
+        order by a.update_time desc, a.id desc
+        <include refid="limit"/>
+    </select>
+    <select id="countArticlesByParams" resultType="java.lang.Long">
+        select count(*) from article a
+        left join user_info u on a.user_id = u.user_id
+        <include refid="articlesByParams"/>
+    </select>
+
+    <select id="listAdminArticlesByIds"
+            resultType="com.github.paicoding.forum.api.model.vo.article.dto.ArticleAdminDTO">
+        select a.id as article_id, a.title, a.short_title, a.url_slug, a.offical_stat,
+               a.topping_stat, a.status, a.cream_stat, a.picture as cover,
+               a.update_time,
+               u.user_id as author, u.user_name as author_name, u.photo as author_avatar
+        from article a
+        left join user_info u on a.user_id = u.user_id
+        where a.deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+          and a.status = ${@com.github.paicoding.forum.api.model.enums.PushStatusEnum@ONLINE.code}
+          and a.id in
+        <foreach collection="articleIds" item="articleId" open="(" close=")" separator=",">
+            #{articleId}
+        </foreach>
+    </select>
+
+    <sql id="articleSearchDocumentSelect">
+        select a.id as article_id,
+               a.user_id as author_id,
+               u.user_name as author_name,
+               a.title,
+               a.short_title,
+               a.url_slug,
+               a.summary,
+               ad.content,
+               a.status,
+               a.offical_stat,
+               a.topping_stat,
+               a.deleted,
+               ca.column_ids,
+               a.update_time
+        from article a
+        left join user_info u on a.user_id = u.user_id
+        left join (
+            select d.article_id, d.content
+            from article_detail d
+            inner join (
+                select article_id, max(version) as version
+                from article_detail
+                where deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+                group by article_id
+            ) latest on latest.article_id = d.article_id and latest.version = d.version
+            where d.deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+        ) ad on ad.article_id = a.id
+        left join (
+            select article_id, group_concat(column_id) as column_ids
+            from column_article
+            group by article_id
+        ) ca on ca.article_id = a.id
+    </sql>
+
+    <select id="queryArticleSearchDocument"
+            resultType="com.github.paicoding.forum.service.article.repository.entity.ArticleSearchDocumentDTO">
+        <include refid="articleSearchDocumentSelect"/>
+        where a.id = #{articleId}
+    </select>
+
+    <select id="listArticleSearchDocumentsByKeyword"
+            resultType="com.github.paicoding.forum.service.article.repository.entity.ArticleSearchDocumentDTO">
+        <include refid="articleSearchDocumentSelect"/>
+        where a.deleted = ${@com.github.paicoding.forum.api.model.enums.YesOrNoEnum@NO.code}
+          <if test="onlineOnly != null and onlineOnly">
+              and a.status = ${@com.github.paicoding.forum.api.model.enums.PushStatusEnum@ONLINE.code}
+          </if>
+          and (
+              a.title like concat('%', #{keyword}, '%')
+              or a.short_title like concat('%', #{keyword}, '%')
+              <if test="includeBody != null and includeBody">
+                  or a.summary like concat('%', #{keyword}, '%')
+                  or ad.content like concat('%', #{keyword}, '%')
+              </if>
+          )
+        order by a.update_time desc, a.id desc
+        limit #{size}
+    </select>
+
+</mapper>

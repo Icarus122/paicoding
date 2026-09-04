@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+  <!-- 侧边栏 -->
+  <div class="hot-article home-right-item-wrap relative" th:fragment="side_articles(side)">
+    <img class="w-full hot-article-bg" src="/img/sidebar-hot-bg.png" th:src="${global.siteInfo.oss + '/img/sidebar-hot-bg.png'}"/>
+    <div class="hot-article-content">
+      <div class="home-right-item-title absolute">
+        <h5 class="com-2-panel-title"
+            th:text="${side.title}">热门推荐</h5>
+      </div>
+      <div class="home-right-item-article-list">
+        <a
+          th:href="${item.url}"
+          class="home-right-item-article-item"
+          th:each="item, itemStat : ${side.items} "
+        >
+          <i th:text="${T(java.lang.String).format('%2d', itemStat.index + 1)}">
+            01
+          </i>
+          <div class="home-right-item-article-title-txt" th:text="${item.title}">
+            推荐文章
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</html>

@@ -1,0 +1,74 @@
+!.gitignore
+.env
+.env.local
+.env.*
+!.env.example
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### ignore logs
+logs/
+pid.log
+.runtime/
+*.jar
+*.jar.bak
+*.jar.tmp
+*.log
+
+### .DS_Store
+
+**/.DS_Store
+.dev-port
+
+
+# 支付证书相关移除
+paicoding-web/src/main/resources/cert
+/.mvn
+*.class
+paicoding-web/src/test/java/com/github/paicoding/forum/test/ai/TestZhipu.java
+paicoding-web/src/test/java/com/github/paicoding/forum/test/ai/TestChatGPT.java
+paicoding-web/src/test/java/com/github/paicoding/forum/test/ai/TestChatGPT.java
+paicoding-web/src/test/java/com/github/paicoding/forum/test/ai/AllToolsTest.java
+paicoding-web/src/test/java/com/github/paicoding/forum/test/ai/TestChatGPT.java
+paicoding-web/src/main/java/com/github/paicoding/forum/web/javabetter/top/copydown/OSSUtil.java
+paicoding-web/src/main/java/com/github/paicoding/forum/web/javabetter/top/image/Convert2OSS.java
+paicoding-web/src/main/java/com/github/paicoding/forum/web/javabetter/zsxq/Random.java
+/.codex-artifacts
+paicoding-miniapp/cli-agent-run/
+paicoding-miniapp/project.private.config.json
+paicoding-miniapp/evidence/*
+!paicoding-miniapp/evidence/README.md
+paicoding-miniapp/node_modules/
+paicoding-miniapp/miniprogram_npm/
+paicoding-miniapp/dist/
+paicoding-miniapp/docs/superpowers/specs/

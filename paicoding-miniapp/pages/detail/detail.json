@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "",
+  "usingComponents": {
+    "t-button": "tdesign-miniprogram/button/button",
+    "mp-html": "mp-html",
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-badge": "tdesign-miniprogram/badge/badge",
+    "t-textarea": "tdesign-miniprogram/textarea/textarea"
+  }
+}

@@ -1,0 +1,36 @@
+<view class="article-card" bindtap="openDetail">
+  <view class="title">{{article.title}}</view>
+  <view class="article-body">
+    <view class="summary-wrapper">
+      <view class="avatar-wrapper">
+        <image src="{{article.authorAvatar}}" class="avatar" />
+        <text>{{article.authorName}}</text>
+      </view>
+
+      <view class="summary">{{article.summary}}</view>
+    </view>
+
+    <image wx:if="{{article.cover}}" class="cover" src="{{article.cover}}" mode="aspectFill"></image>
+  </view>
+  <view class="footer">
+    <view class="meta">
+      <view class="flex-ic">
+        <image src="/assets/images/article-read.png" class="icon" />
+        <text class="value">{{article.readCount}}</text>
+      </view>
+
+      <view class="flex-ic">
+        <image src="/assets/images/article-praise.png" class="icon" />
+        <text class="value">{{article.praiseCount}}</text>
+      </view>
+
+      <view class="flex-ic">
+        <image src="/assets/images/article-comment.png" class="icon" />
+        <text class="value">{{article.commentCount}}</text>
+      </view>
+    </view>
+    <view wx:if="{{article.tags.length}}" class="tags">
+      <view class="tag">{{article.tags[0]}}</view>
+    </view>
+  </view>
+</view>

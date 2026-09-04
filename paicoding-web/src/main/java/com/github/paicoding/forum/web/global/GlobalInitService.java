@@ -1,0 +1,178 @@
+package com.github.paicoding.forum.web.global;
+
+import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.github.paicoding.forum.api.model.context.ReqInfoContext;
+import com.github.paicoding.forum.api.model.vo.seo.Seo;
+import com.github.paicoding.forum.api.model.vo.user.dto.BaseUserInfoDTO;
+import com.github.paicoding.forum.core.util.NumUtil;
+import com.github.paicoding.forum.core.util.SessionUtil;
+import com.github.paicoding.forum.service.config.service.NavbarConfigService;
+import com.github.paicoding.forum.web.config.GlobalViewConfig;
+import com.github.paicoding.forum.web.front.login.wx.config.WxLoginProperties;
+import com.github.paicoding.forum.web.global.vo.GlobalVo;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.annotation.Resource;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * @author YiHui
+ * @date 2022/9/3
+ */
+@Slf4j
+@Service
+public class GlobalInitService {
+    public static final String CURRENT_DOMAIN_ATTRIBUTE = "globalCurrentDomain";
+
+    @Value("${env.name}")
+    private String env;
+    @Autowired
+    private com.github.paicoding.forum.service.user.service.UserService userService;
+
+    @Resource
+    private GlobalViewConfig globalViewConfig;
+
+    @Resource
+    private com.github.paicoding.forum.service.notify.service.NotifyService notifyService;
+
+    @Resource
+    private SeoInjectService seoInjectService;
+
+    @Resource
+    private com.github.paicoding.forum.service.statistics.service.UserStatisticService userStatisticService;
+
+    @Resource
+    private com.github.paicoding.forum.service.sitemap.service.SitemapService sitemapService;
+
+    @Resource
+    private WxLoginProperties wxLoginProperties;
+
+    @Resource
+    private NavbarConfigService navbarConfigService;
+
+    /**
+     * 全局属性配置
+     */
+    public GlobalVo globalAttr() {
+        GlobalVo vo = new GlobalVo();
+        vo.setEnv(env);
+        vo.setSiteInfo(globalViewConfig);
+        vo.setOnlineCnt(userStatisticService.getOnlineUserCnt());
+        vo.setSiteStatisticInfo(sitemapService.querySiteVisitInfo(null, null));
+        vo.setTodaySiteStatisticInfo(sitemapService.querySiteVisitInfo(LocalDate.now(), null));
+        vo.setLoginQrType(wxLoginProperties.getLoginQrType());
+        vo.setNavbarItems(navbarConfigService.getEnabledItems());
+
+        if (ReqInfoContext.getReqInfo() == null || ReqInfoContext.getReqInfo().getSeo() == null || CollectionUtils.isEmpty(ReqInfoContext.getReqInfo().getSeo().getOgp())) {
+            Seo seo = seoInjectService.defaultSeo();
+            vo.setOgp(seo.getOgp());
+            vo.setJsonLd(JSONUtil.toJsonStr(seo.getJsonLd()));
+        } else {
+            Seo seo = ReqInfoContext.getReqInfo().getSeo();
+            vo.setOgp(seo.getOgp());
+            vo.setJsonLd(JSONUtil.toJsonStr(seo.getJsonLd()));
+        }
+
+        try {
+            if (ReqInfoContext.getReqInfo() != null && NumUtil.upZero(ReqInfoContext.getReqInfo().getUserId())) {
+                vo.setIsLogin(true);
+                vo.setUser(ReqInfoContext.getReqInfo().getUser());
+                vo.setMsgNum(ReqInfoContext.getReqInfo().getMsgNum());
+            } else {
+                vo.setIsLogin(false);
+            }
+
+            HttpServletRequest request =
+                    ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+            Object currentDomain = request.getAttribute(CURRENT_DOMAIN_ATTRIBUTE);
+            if (currentDomain instanceof String && !((String) currentDomain).isEmpty()) {
+                vo.setCurrentDomain((String) currentDomain);
+            } else if (request.getRequestURI().startsWith("/column")) {
+                vo.setCurrentDomain("column");
+            } else if (request.getRequestURI().startsWith("/chat")) {
+                vo.setCurrentDomain("chat");
+            } else {
+                vo.setCurrentDomain("article");
+            }
+        } catch (Exception e) {
+            log.error("loginCheckError:", e);
+        }
+        return vo;
+    }
+
+    /**
+     * 初始化用户信息
+     *
+     * @param reqInfo
+     */
+    public void initLoginUser(ReqInfoContext.ReqInfo reqInfo) {
+        HttpServletRequest request =
+                ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+        String headerSession = findSessionFromHeader(request);
+        if (StringUtils.isNotBlank(headerSession) && initLoginUser(headerSession, reqInfo)) {
+            return;
+        }
+        if (request.getCookies() == null) {
+            return;
+        }
+
+        List<Cookie> list = SessionUtil.findCookiesByName(request, com.github.paicoding.forum.service.user.service.LoginService.SESSION_KEY);
+        if (CollectionUtils.isEmpty(list)) {
+            return;
+        }
+        for (Cookie ck : list) {
+            if (initLoginUser(ck.getValue(), reqInfo)) {
+                // 成功登录
+                return;
+            } else {
+                // 未登录，直接删除
+                SessionUtil.delCookie(ck);
+            }
+        }
+    }
+
+    private String findSessionFromHeader(HttpServletRequest request) {
+        if (!isMiniApiRequest(request)) {
+            return null;
+        }
+        String authorization = request.getHeader("Authorization");
+        if (StringUtils.startsWithIgnoreCase(authorization, "Bearer ")) {
+            return StringUtils.trim(authorization.substring("Bearer ".length()));
+        }
+
+        String token = request.getHeader(com.github.paicoding.forum.service.user.service.LoginService.SESSION_KEY);
+        if (StringUtils.isNotBlank(token)) {
+            return StringUtils.trim(token);
+        }
+
+        token = request.getHeader("X-Pai-Token");
+        return StringUtils.isBlank(token) ? null : StringUtils.trim(token);
+    }
+
+    private boolean isMiniApiRequest(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        return StringUtils.equals(uri, "/mini/api") || StringUtils.startsWith(uri, "/mini/api/");
+    }
+
+    public boolean initLoginUser(String session, ReqInfoContext.ReqInfo reqInfo) {
+        BaseUserInfoDTO user = userService.getAndUpdateUserIpInfoBySessionId(session, reqInfo.getClientIp(), reqInfo.getDeviceId(), reqInfo.getUserAgent());
+        if (user != null) {
+            reqInfo.setSession(session);
+            reqInfo.setUserId(user.getUserId());
+            reqInfo.setUser(user);
+            reqInfo.setMsgNum(notifyService.queryUserNotifyMsgCount(user.getUserId()));
+            return true;
+        }
+        return false;
+    }
+}

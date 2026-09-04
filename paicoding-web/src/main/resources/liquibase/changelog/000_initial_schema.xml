@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+
+    <property name="now" value="now()" dbms="mysql"/>
+    <property name="autoIncrement" value="true"/>
+
+    <changeSet id="00000000000001" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_schema_221209.sql"/>
+    </changeSet>
+
+    <changeSet id="00000000000002" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_221209.sql"/>
+    </changeSet>
+
+    <changeSet id="00000000000003" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_221210.sql"/>
+    </changeSet>
+
+    <changeSet id="00000000000005" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_221216.sql"/>
+    </changeSet>
+
+    <!--  专栏类型，新增免费开始时间、结束时间  -->
+    <changeSet id="00000000000006" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_221223.sql"/>
+    </changeSet>
+
+    <!-- user_info表添加ip字段，用于记录访问用户所在地   -->
+    <changeSet id="00000000000007" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_221229.sql"/>
+    </changeSet>
+
+    <!-- 配置表新增 extra 字段 -->
+    <changeSet id="00000000000008" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230103.sql"/>
+    </changeSet>
+
+    <!-- 技术派介绍文章 -->
+    <changeSet id="00000000000009" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_230103.sql"/>
+    </changeSet>
+
+    <!-- 重新更新标签 -->
+    <changeSet id="00000000000012" author="LouZai">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_230105.sql"/>
+    </changeSet>
+
+    <!-- 添加审核中 -->
+    <changeSet id="00000000000013" author="LouZai">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_230130.sql"/>
+    </changeSet>
+
+    <!-- 添加用户角色 -->
+    <changeSet id="00000000000014" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230131.sql"/>
+    </changeSet>
+
+    <!-- 重新调整初始化的相关文章内容 -->
+    <changeSet id="00000000000015" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_230415.sql"/>
+    </changeSet>
+
+    <!-- AI 聊天相关 -->
+    <changeSet id="00000000000016" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230626.sql"/>
+    </changeSet>
+
+    <!-- db 配置 -->
+    <changeSet id="00000000000017" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230628.sql"/>
+    </changeSet>
+
+    <!-- 添加枚举字典 -->
+    <changeSet id="00000000000018" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_230629.sql"/>
+    </changeSet>
+
+    <!-- 新增专栏文章的阅读类型  -->
+    <changeSet id="00000000000019" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230820.sql"/>
+    </changeSet>
+
+    <!-- 添加星球描述信息  -->
+    <changeSet id="00000000000020" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_230821.sql"/>
+    </changeSet>
+
+    <!-- 修改文章主键  -->
+    <changeSet id="00000000000021" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_231018.sql"/>
+    </changeSet>
+
+    <!-- 添加枚举字典  -->
+    <changeSet id="00000000000022" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_231113.sql"/>
+    </changeSet>
+
+    <!-- 新增文章支付记录  -->
+    <changeSet id="000020241030_0" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_241029.sql"/>
+    </changeSet>
+
+    <!-- 新增微信支付对接   -->
+    <changeSet id="000020241204_0" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_241204.sql"/>
+    </changeSet>
+
+    <!-- 专栏分组 -->
+    <changeSet id="000020241217_0" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_241217.sql"/>
+    </changeSet>
+
+    <!-- ai聊天按照对话进行分组  -->
+    <changeSet id="000020250206_0" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_250207.sql"/>
+    </changeSet>
+
+    <!-- 新增短链接数据库  -->
+    <changeSet id="000020250213_0" author="betasecond">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_250213.sql"/>
+    </changeSet>
+
+    <!-- 初始化杠精机器人信息  -->
+    <changeSet id="000020250224_0" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_250224.sql"/>
+    </changeSet>
+
+    <!-- 集成知识星球登录  -->
+    <changeSet id="000020250819_0" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_250819.sql"/>
+    </changeSet>
+    <!-- 自动添加字典数据 2025-08-24 12:08:03 -->
+    <changeSet id="20250824_0" author="沉默王二">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_20250824.sql"/>
+    </changeSet>
+
+    <changeSet id="20250824_1" author="沉默王二">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/init_data_20250824_1.sql"/>
+    </changeSet>
+
+    <!-- 正文划线评论  -->
+    <changeSet id="20251103_1" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251103.sql"/>
+    </changeSet>
+
+    <changeSet id="20251104_1" author="YiHui">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251104.sql"/>
+    </changeSet>
+
+    <!-- 修改杠精机器人名称为杠精派  -->
+    <!-- 通知表添加评论ID字段  -->
+    <changeSet id="20251105_2" author="沉默王二">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251105_1.sql"/>
+    </changeSet>
+
+    <!-- 添加 url_slug 字段用于SEO友好的URL  -->
+    <changeSet id="20251110_1" author="Claude">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251110.sql"/>
+    </changeSet>
+
+    <!-- 增加 user_info 表的 photo 字段长度  -->
+    <changeSet id="20260121_1" author="Qoder">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260121.sql"/>
+    </changeSet>
+
+    <!-- 扩大 global_conf 表 value 字段长度  -->
+    <changeSet id="20260228_1" author="Qoder">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260228.sql"/>
+    </changeSet>
+
+    <!-- 登录审计与活跃会话 -->
+    <changeSet id="20260423_1" author="Codex">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260423.sql"/>
+    </changeSet>
+
+    <!-- 用户禁用能力 -->
+    <changeSet id="20260425_1" author="Codex">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260425.sql"/>
+    </changeSet>
+
+    <!-- 优化星球用户上次登录时间查询 -->
+    <changeSet id="20260506_1" author="Codex">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260506.sql"/>
+    </changeSet>
+
+    <!-- 疑似共享账号状态，避免清空登录明细后丢失处理对象 -->
+    <changeSet id="20260512_1" author="Codex">
+        <validCheckSum>8:c14f474ef971473c0bf0a2d54ab7c251</validCheckSum>
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260512.sql"/>
+    </changeSet>
+
+    <!-- 兼容已经执行过快照版本的本地库，确保长期状态表存在 -->
+    <changeSet id="20260512_2" author="Codex">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260512_2.sql"/>
+    </changeSet>
+
+    <!-- 疑似共享账号表追加 last_release_at / last_handle_reason，并把 user_id 改为 NOT NULL -->
+    <changeSet id="20260513_1" author="Codex">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260513.sql"/>
+    </changeSet>
+
+    <!-- 教程添加URL友好的独立标识，避免前台路径暴露数据库ID -->
+    <changeSet id="20260524_1" author="Codex">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="column_info" columnName="url_slug"/>
+            </not>
+        </preConditions>
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260524.sql"/>
+    </changeSet>
+
+    <!-- 教程URL独立标识增加查询索引 -->
+    <changeSet id="20260524_2" author="Codex">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists tableName="column_info" indexName="idx_url_slug"/>
+            </not>
+        </preConditions>
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260524_2.sql"/>
+    </changeSet>
+
+    <!-- 教程介绍页 README 内容，用于增强 /column/{slug} 教程页 SEO 主体内容 -->
+    <changeSet id="20260610_1" author="Codex">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="column_info" columnName="readme_content"/>
+            </not>
+        </preConditions>
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260610.sql"/>
+    </changeSet>
+
+    <!-- 教程文章未解锁试看比例，0 表示沿用全局试看字数配置 -->
+    <changeSet id="20260525_1" author="Codex">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="column_article" columnName="preview_percent"/>
+            </not>
+        </preConditions>
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260525.sql"/>
+    </changeSet>
+
+    <!-- user_info.user_role 增加运营角色说明：0 普通用户 1 超管 2 运营 -->
+    <changeSet id="20260530_1" author="Codex">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260530.sql"/>
+    </changeSet>
+
+    <!-- 图片尺寸表：持久化正文图片宽高，渲染时补充占位消除 CLS -->
+    <changeSet id="20260709_1" author="Claude">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260709.sql"/>
+    </changeSet>
+
+    <!-- 教程简介扩容，并由应用层统一限制为最多 500 个字符 -->
+    <changeSet id="20260829_1" author="Codex">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="column_info" columnName="introduction"/>
+        </preConditions>
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260829.sql"/>
+    </changeSet>
+</databaseChangeLog>

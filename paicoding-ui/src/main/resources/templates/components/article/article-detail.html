@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<!-- 文章内容 -->
+<section
+        th:fragment="article_info(article, author, other, payUsers)"
+        class="article-info-wrap com-2-panel col-2-article J-articlePanel"
+>
+    <span class="com-2-mark-triangle article-mark">
+      <span class="mark-cnt">原创</span>
+    </span>
+  <h1
+          id="postsTitle"
+          class="article-info-title"
+          th:data-id="${article.articleId}"
+          th:text="${article.title}"
+  >
+    标题
+  </h1>
+  <div>
+    <div class="detail-content-title-other-wrap relative" th:if="${author != null}">
+      <img th:src="${author.photo}" class="detail-content-title-other-img" width="22" height="22" />
+      <a
+              th:href="${'/user/' + author.userId}"
+              th:text="${author.userName}"
+              class="detail-content-title-other-name"
+      >
+        作者
+      </a>
+
+      <span
+              th:text="${T(com.github.paicoding.forum.core.util.DateUtil).time2day(article.createTime)}"
+              class="detail-content-title-other-time"
+      >
+          更新时间
+        </span>
+      <span th:text="'阅读 ' + ${article.count.readCount}">520</span>
+      <!-- 付费阅读 -->
+      <span style="margin-left:4px" th:if="${article.readType != null && article.readType == 4}">
+        <svg class="icon" style="width: 2.2em;height: 2.2em;vertical-align: middle;fill: red;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="10666"><path d="M662.153812 450.997648h63.83998v-20.825305h-58.377572c-1.367137 7.851828-3.072989 13.656021-5.462408 20.825305z m143.384641-53.940517H745.45196v17.752316h60.08547v-17.752316z m-220.539882 53.940517h56.329936c2.732228-6.144954 4.779863-12.631692 6.828523-20.825305h-55.988152l-7.170307 20.825305z m85.007069-36.188201h55.988152v-17.752316H671.712515c-0.682545 7.511067-1.366114 12.632715-1.706875 17.752316zM0.021489 256.010745v511.977487h1023.957022V256.010745H0.021489z m249.462609 411.770228c1.36509-12.290931 2.047636-23.556509 2.047635-41.307802V512.447185c0-15.021112 0.341784-25.604144 1.365091-41.307802-13.995759 23.556509-21.847587 34.138518-38.234813 52.575426-1.025353-1.706875-2.049682-3.074012-2.390443-3.756557-4.437056-6.828522-4.437056-7.169283-12.630669-15.021111 30.381961-32.090882 49.843198-61.449537 68.618821-104.124476 8.876158-20.140713 13.31526-33.115212 15.021112-43.697221l24.579814 7.851828c-2.38942 4.096295-4.096295 8.193613-8.534373 19.458168-4.77884 11.949146-15.703657 35.505655-25.944906 54.963822v187.766454c0 15.703657 0.682545 28.67611 1.706875 40.625257h-25.604144z m65.546855-164.55173l17.752316-12.288885c24.921599 27.311019 37.895075 44.721551 57.69605 77.153195l-19.11843 14.68035c-17.411555-32.773428-33.797757-55.305607-56.329936-79.54466z m192.20351-41.307802c-10.583033-1.02433-21.50785-1.36509-32.431643-1.36509h-16.727987v170.694637c0 22.532179-7.169283 27.994588-37.553291 27.994587-13.995759 0-25.944905-0.682545-41.649585-2.049682-1.36509-9.558703-2.730181-14.678304-6.486738-23.212678 20.825304 3.071965 30.725792 4.096295 46.771233 4.096295 13.997805 0 17.069771-1.36509 17.069771-8.876158V460.556351H329.028759c-14.338566 0-27.653827 0.682545-36.529985 2.047635v-23.897269c8.876158 1.36509 21.50785 2.047636 35.505655 2.047636h108.219747v-39.260166c0-16.045441-0.682545-30.0412-2.38942-39.942711h26.28669c-1.36509 11.608386-2.047636 23.214724-2.047636 39.942711v39.260166h16.727986c13.656021 0 23.556509-0.682545 32.431644-2.047636v23.214724z m199.299115 97.295954c-1.706875 29.701462-7.169283 49.15963-18.434861 61.792344-13.656021 16.045441-35.503609 27.65178-67.594491 36.186154-15.362896 3.756557-33.116235 6.828522-62.134129 9.901511-2.730181-8.193613-4.779863-12.631692-10.92584-21.167089 41.309848-0.341784 81.252559-8.193613 103.782691-20.482497 25.264407-13.656021 33.79878-31.408337 33.798781-70.668502 0-5.462408 0-7.511067-0.682546-13.315261h23.556509c-0.683569 6.488785-0.683569 6.488785-1.366114 17.75334zM838.311881 669.828608c-55.305607-22.87294-73.740468-29.701462-130.069381-47.111994l9.216919-17.752316 66.571184 22.87294c9.899464 3.412726 9.899464 3.412726 35.505655 12.630669 9.899464 3.756557 13.653975 5.121648 26.627451 9.901511l-7.851828 19.45919z m4.437055-201.420429c-2.38942 15.362896-4.77884 23.556509-7.509021 26.627451-3.756557 4.439102-9.218966 6.144954-17.412578 6.144954-7.851828 0-13.313214-0.682545-23.214724-2.730181-1.02433-9.901511-1.36509-11.608386-3.754511-18.095124 10.241248 3.414773 15.703657 4.439102 21.849634 4.439102 7.511067 0 8.193613-0.682545 10.583033-18.093076H745.45196v12.971429c0 9.216919 0.341784 13.997805 1.706874 20.142759h-22.871917c1.36509-5.804193 1.706875-10.92584 1.706875-19.801998v-13.313214h-72.033593c-11.266601 17.410532-26.971281 30.0412-50.526767 40.967041 10.92584 0.341784 11.949146 0.341784 23.214725 0.341784h138.605801c16.386202 0 29.016871-0.341784 38.57762-1.365091-1.025353 7.511067-1.367137 18.775622-1.367137 33.455973v35.845393c0 19.801998 0.341784 29.701462 1.707898 37.895075h-26.288736c1.707898-11.948123 2.390443-21.50785 2.390443-37.895075v-50.183959H611.628068v50.183959c0 11.949146 1.02433 30.384008 2.047636 37.895075h-26.288736c1.707898-9.899464 2.390443-22.532179 2.390443-37.895075v-33.455973c0-17.410532 0-21.167089-0.682545-29.018917-12.631692 5.121648-18.777669 7.511067-36.529985 12.631692-3.071965-7.511067-6.486738-12.973476-11.265578-17.752316 48.136324-10.241248 73.398684-21.849634 90.12667-41.649586h-44.722574c-11.948123 0-22.189372 0.341784-30.381961 1.02433 9.558703-18.435884 15.020088-34.82311 18.775622-53.940517 7.511067 0.682545 15.703657 1.02433 31.066553 1.02433h44.379767c0.682545-5.119601 1.367137-13.31526 1.367137-17.752316h-59.402925c-13.656021 0-23.556509 0.341784-33.455973 1.706875v-20.140713c8.534374 1.36509 16.386202 1.706875 33.455973 1.706875h60.08547c0-10.583033-0.340761-13.997805-1.367137-23.214725h22.532179c-0.682545 5.121648-1.02433 8.193613-1.36509 23.214725h53.598732v-3.414773c0-8.193613-0.341784-12.971429-1.706875-20.140713h22.871917c-1.36509 7.169283-1.706875 11.948123-1.706875 20.824282v2.732227h49.15963c15.703657 0 24.922622-0.341784 32.431643-1.706875-1.02433 7.851828-1.36509 12.630668-1.36509 22.189372v11.266601c0 11.265578 0 13.656021 1.024329 19.117407-9.899464-0.682545-19.458167-1.02433-32.431643-1.02433H745.45196v20.825305h67.596537c19.458167 0 24.921599 0 33.115212-1.02433-1.02433 4.096295-1.706875 8.876158-3.414773 18.434861z" fill="" p-id="10667"></path></svg>
+      </span>
+
+      <span th:if="${article.status != 1}">
+            <span th:text="${article.status == 0 ? '(草稿)' : '(审核中)'}" style="padding-left: 1em; color: red"></span>
+        </span>
+      <div
+              th:if="${global.isLogin && article.author == global.user.userId}"
+              class="detail-content-title-edit"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
+          <symbol id="edit-svg" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path class="cls-1" d="M9 1H3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7h-1v6a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1h6V1z" />
+            <path class="cls-1" d="M12 2.41L13.59 4l-6 6H6V8.41l6-6M12 1L5 8v3h3l7-7-3-3z" />
+          </symbol>
+        </svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
+          <symbol id="delete-svg" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path class="cls-1" d="M13 3h-2V1H5v2H2v1h1v9a2 2 0 002 2h6a2 2 0 002-2V4h1V3zM6 2h4v1H6zm5 12H5a1 1 0 01-1-1V4h8v9a1 1 0 01-1 1z" />
+            <path class="cls-1" d="M6 6h1v6H6zm3 0h1v6H9z" />
+          </symbol>
+        </svg>
+
+        <a th:href="${'/article/edit?articleId=' + article.articleId}" class="com-opt-link link-edit">
+          <svg class="com-i-edit">
+            <use xlink:href="#edit-svg"></use>
+          </svg>编辑
+        </a>
+
+        <a href="javascript:;" data-target="#deleteModal" data-toggle="modal" class="com-opt-link link-delete ml-3">
+          <svg class="com-i-delete">
+            <use xlink:href="#delete-svg"></use>
+          </svg>删除
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div id="articleContent" class="article-content" th:utext="${article.content}">
+  </div>
+
+  <div class="article-change direction" th:if="${author == null}">
+    <!-- 点赞按钮 -->
+    <div class="step-btn--next"
+         id="praiseFloatBtn"
+         th:data-target="${global.isLogin ? '' : '#loginModal'}"
+         th:data-toggle="${global.isLogin ? '' : 'modal'}">
+      <div class="article-change-item"
+           th:classappend="${article.praised ? ' active' : ''} + ${article.count.praiseCount > 0 ? ' with-badge' : ''}"
+           th:style="${ other.flip != null && other.flip.nextShow ? 'bottom: 220px' : 'bottom: 210px'}"
+           th:attr="badge=${article.count.praiseCount}">
+        <svg class="float-action-icon float-action-icon--praise" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="24" height="24">
+          <path class="float-icon__outline" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"
+                d="M13.0651 3.25923C12.6654 2.21523 12.1276 1.60359 11.4633 1.40559C10.8071 1.21 10.2539 1.48626 9.97848 1.67918C9.43962 2.05668 9.17297 2.64897 9.0009 3.12662C8.93522 3.30893 8.87504 3.50032 8.82077 3.67291L8.82077 3.67292C8.80276 3.73019 8.78541 3.78539 8.76872 3.8375C8.6974 4.06017 8.63455 4.23905 8.56561 4.38315C8.07104 5.41687 7.64014 6.034 7.2617 6.43277C6.89154 6.8228 6.5498 7.0275 6.18413 7.21038C5.8887 7.35813 5.69369 7.66144 5.69365 8.00211L5.69237 17.3908C5.6923 17.8783 6.08754 18.2736 6.57511 18.2736H14.8382C15.2621 18.2736 15.5829 18.1393 15.8149 17.9421C15.9234 17.8497 15.9985 17.7554 16.0484 17.6856C16.0695 17.6561 16.088 17.6282 16.0983 17.6126L16.1017 17.6075L16.1033 17.6051L16.1194 17.5857L16.1428 17.5478C16.913 16.3019 17.4472 15.3088 17.8659 14.1183C18.3431 12.7613 18.5849 11.5853 18.6874 10.6685C18.7871 9.77617 18.7612 9.07318 18.6558 8.68779C18.5062 8.14118 18.138 7.82653 17.7668 7.66617C17.4231 7.51771 17.0763 7.49836 16.8785 7.49807L13.1134 7.44551C13.662 5.19751 13.31 3.89889 13.0651 3.25923ZM1.251 8.0848C1.22726 7.5815 1.62891 7.16046 2.13277 7.16046H3.4408C3.92832 7.16046 4.32354 7.55568 4.32354 8.04321V17.4303C4.32354 17.9178 3.92832 18.313 3.4408 18.313H2.57554C2.10419 18.313 1.71599 17.9427 1.69378 17.4718L1.251 8.0848Z">
+          </path>
+          <path class="float-icon__solid" fill="currentColor"
+                d="M13.0651 3.25923C12.6654 2.21523 12.1276 1.60359 11.4633 1.40559C10.8071 1.21 10.2539 1.48626 9.97848 1.67918C9.43962 2.05668 9.17297 2.64897 9.0009 3.12662C8.93522 3.30893 8.87504 3.50032 8.82077 3.67291L8.82077 3.67292C8.80276 3.73019 8.78541 3.78539 8.76872 3.8375C8.6974 4.06017 8.63455 4.23905 8.56561 4.38315C8.07104 5.41687 7.64014 6.034 7.2617 6.43277C6.89154 6.8228 6.5498 7.0275 6.18413 7.21038C5.8887 7.35813 5.69369 7.66144 5.69365 8.00211L5.69237 17.3908C5.6923 17.8783 6.08754 18.2736 6.57511 18.2736H14.8382C15.2621 18.2736 15.5829 18.1393 15.8149 17.9421C15.9234 17.8497 15.9985 17.7554 16.0484 17.6856C16.0695 17.6561 16.088 17.6282 16.0983 17.6126L16.1017 17.6075L16.1033 17.6051L16.1194 17.5857L16.1428 17.5478C16.913 16.3019 17.4472 15.3088 17.8659 14.1183C18.3431 12.7613 18.5849 11.5853 18.6874 10.6685C18.7871 9.77617 18.7612 9.07318 18.6558 8.68779C18.5062 8.14118 18.138 7.82653 17.7668 7.66617C17.4231 7.51771 17.0763 7.49836 16.8785 7.49807L13.1134 7.44551C13.662 5.19751 13.31 3.89889 13.0651 3.25923ZM1.251 8.0848C1.22726 7.5815 1.62891 7.16046 2.13277 7.16046H3.4408C3.92832 7.16046 4.32354 7.55568 4.32354 8.04321V17.4303C4.32354 17.9178 3.92832 18.313 3.4408 18.313H2.57554C2.10419 18.313 1.71599 17.9427 1.69378 17.4718L1.251 8.0848Z">
+          </path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 评论按钮 -->
+    <div class="step-btn--next" id="commentFloatBtn">
+      <div class="article-change-item with-badge"
+           th:classappend="${article.commented ? ' active' : ''}"
+           th:style="${ other.flip != null && other.flip.nextShow ? 'bottom: 150px' : 'bottom: 140px'}"
+           th:attr="badge=${article.count.commentCount}">
+        <svg class="float-action-icon float-action-icon--comment" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="24" height="24">
+          <path class="float-icon__outline" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"
+                d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 11.8487 2.6329 13.551 3.69842 14.9031L2.29289 16.7071C2.10536 16.8946 2 17.149 2 17.4142C2 17.9665 2.44772 18.4142 3 18.4142H10C10 18.2761 10 18.1381 10 18ZM14 9C14 8.44772 13.5523 8 13 8C12.4477 8 12 8.44772 12 9V10C12 10.5523 12.4477 11 13 11C13.5523 11 14 10.5523 14 10V9ZM10 8C10.5523 8 11 8.44772 11 9V10C11 10.5523 10.5523 11 10 11C9.44772 11 9 10.5523 9 10V9C9 8.44772 9.44772 8 10 8ZM8 9C8 8.44772 7.55228 8 7 8C6.44772 8 6 8.44772 6 9V10C6 10.5523 6.44772 11 7 11C7.55228 11 8 10.5523 8 10V9Z">
+          </path>
+          <path class="float-icon__solid" fill="currentColor"
+                d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 11.8487 2.6329 13.551 3.69842 14.9031L2.29289 16.7071C2.10536 16.8946 2 17.149 2 17.4142C2 17.9665 2.44772 18.4142 3 18.4142H10C10 18.2761 10 18.1381 10 18ZM14 9C14 8.44772 13.5523 8 13 8C12.4477 8 12 8.44772 12 9V10C12 10.5523 12.4477 11 13 11C13.5523 11 14 10.5523 14 10V9ZM10 8C10.5523 8 11 8.44772 11 9V10C11 10.5523 10.5523 11 10 11C9.44772 11 9 10.5523 9 10V9C9 8.44772 9.44772 8 10 8ZM8 9C8 8.44772 7.55228 8 7 8C6.44772 8 6 8.44772 6 9V10C6 10.5523 6.44772 11 7 11C7.55228 11 8 10.5523 8 10V9Z"
+          ></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 短链接分享 -->
+    <div class="step-btn--next" id="shareFloatBtn">
+      <div class="article-change-item" th:style="${ other.flip != null && other.flip.nextShow ? 'bottom: 80px' : 'bottom: 70px'}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" class="" width="24" height="24">
+          <path fill-rule="evenodd" clip-rule="evenodd" fill="#ff8721"
+                d="M16 5.5C16 7.15685 14.6569 8.5 13 8.5C12.0747 8.5 11.2439 8.09175 10.6585 7.44721L8.47639 8.86396C8.48504 8.97365 8.48997 9.08578 8.48997 9.19969C8.48997 9.31361 8.48504 9.42573 8.47639 9.53542L10.6585 10.9522C11.2439 10.3076 12.0747 9.89938 13 9.89938C14.6569 9.89938 16 11.2425 16 12.8994C16 14.5562 14.6569 15.8994 13 15.8994C11.3431 15.8994 10 14.5562 10 12.8994C10 12.7854 10.0049 12.6733 10.0145 12.5636L7.83242 11.1469C7.24702 11.7914 6.41623 12.1997 5.48997 12.1997C3.83312 12.1997 2.48997 10.8565 2.48997 9.19969C2.48997 7.54284 3.83312 6.19969 5.48997 6.19969C6.41623 6.19969 7.24702 6.60794 7.83242 7.25248L10.0145 5.83573C10.0049 5.72604 10 5.61392 10 5.5C10 3.84315 11.3431 2.5 13 2.5C14.6569 2.5 16 3.84315 16 5.5ZM13 7.1C13.8837 7.1 14.6 6.38366 14.6 5.5C14.6 4.61634 13.8837 3.9 13 3.9C12.1163 3.9 11.4 4.61634 11.4 5.5C11.4 6.38366 12.1163 7.1 13 7.1ZM5.48997 10.7997C6.37363 10.7997 7.08997 10.0833 7.08997 9.19969C7.08997 8.31603 6.37363 7.59969 5.48997 7.59969C4.60631 7.59969 3.88997 8.31603 3.88997 9.19969C3.88997 10.0833 4.60631 10.7997 5.48997 10.7997ZM14.6 12.8994C14.6 13.783 13.8837 14.4994 13 14.4994C12.1163 14.4994 11.4 13.783 11.4 12.8994C11.4 12.0157 12.1163 11.2994 13 11.2994C13.8837 11.2994 14.6 12.0157 14.6 12.8994Z"
+          ></path>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 回到顶部 -->
+    <div class="step-btn--next" id="backTopFloatBtn">
+      <div class="article-change-item" th:style="${ other.flip != null && other.flip.nextShow ? 'bottom: 10px' : 'bottom: 0'}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="24" height="24">
+          <path fill="none" stroke="#ff8721" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M5 11l5-5 5 5"></path>
+          <path fill="none" stroke="#ff8721" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                d="M10 6v8"></path>
+        </svg>
+      </div>
+    </div>
+
+    <button type="button" class="article-change-toggle" id="floatActionToggleBtn" aria-label="收起快捷操作">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+              d="M8 5l5 5-5 5"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div th:if="${other.readType == 1 && !global.isLogin}">
+    <div class="needlock">
+      <a class="btn-readmore no-login login-readmore underline" href="#" data-target="#loginModal" data-toggle="modal">
+        <span>登录之后即可阅读全文</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="paywall" th:if="${other.readType == 4 && article.canRead != null && article.canRead == false}">
+    <div class="needlock" style="text-align: center">
+      <a class="btn-readmore no-login underline" data-target="#payInfoModal" data-toggle="modal">
+        <button type="button" class="c-btn" onclick="showPayModal()" th:if="${T(java.util.Objects).equals(article.payWay, 'email')}">打赏之后立即解锁阅读全文🔐</button>
+        <button type="button" class="c-btn" onclick="showPayModal()" th:if="${!T(java.util.Objects).equals(article.payWay, 'email') && article.payAmount != null}">支付<span style="font-size: 1.4em;color: #ffeb3b;padding:0 0.2em" th:text="'￥' + ${article.payAmount}">元</span>立即解锁阅读全文🔐</button>
+      </a>
+    </div>
+  </div>
+
+  <div th:if="${other.readType == 4}" class="container text-right">
+    <button class="c-btn c-btn-hole" style="border-radius: 1.5em;" th:text="'去打赏'" th:if="${payUsers == null}" onclick="showPayModal()">15人已赏</button>
+    <button class="c-btn c-btn-hole" style="border-radius: 1.5em;" th:text="${payUsers.size()} + '人已赏'" th:if="${payUsers != null}" onclick="showPayUserInfo()">15人已赏</button>
+  </div>
+
+  <div class="paywall" th:if="${other.readType == 3 && !(global.user != null && global.user.starStatus.code == 2)}">
+    <div class="needlock needlock--star">
+      <div class="star-access-card">
+        <div class="star-access-card__banner-row">
+          <a href="#" class="star-access-card__banner underline" data-target="#registerModal" data-toggle="modal">
+            以下内容需要加入二哥编程星球解锁，即刻绑定星球编号解锁🔐
+          </a>
+
+        </div>
+        
+        <div class="star-access-card__layout">
+          <div class="star-access-card__main">
+            <a href="/login/zsxq" class="c-btn c-btn-hole star-access-card__banner-action">
+              已加入星球，可直接知识星球授权登录
+            </a>
+            <div class="star-access-card__summary">
+              二哥编程星球目前包含：<br>
+              <a class="underline" href="https://javabetter.cn/zhishixingqiu/paiflow.html">企业级Agent工作流编排项目PaiFlow</a><br>
+              <a class="underline" href="https://javabetter.cn/zhishixingqiu/paiaagent.html">Vibe Coding版本的PaiAgent</a><br>
+              <a class="underline" href="https://javabetter.cn/zhishixingqiu/paizhongqing.html">派聪明RAG AI知识库Java版本+Go版本</a><br>
+              <a class="underline" href="https://javabetter.cn/zhishixingqiu/pmhub.html">微服务 PmHub</a>、<a class="underline" href="https://javabetter.cn/zhishixingqiu/technology.html" target="_blank">技术派</a>、MYDB<br>
+              求职派JobClaw（OpenClaw/Hermes架构<br>
+              PaiCLI（类似Claude Code的Agent<br>
+              派简历（代码已完成）<br>
+              等实战项目。
+            </div>
+            <div class="star-access-card__steps">
+              <p><strong>1.</strong> 微信扫右侧的优惠券加入知识星球</p>
+              <p><strong>2.</strong> 解锁星球的实战项目教程和源码：
+                <a class="underline" href="https://paicoding.com/ai-agent-projects-guide" target="_blank">项目源码+教程获取</a></p>
+            </div>
+
+          </div>
+          <div class="star-access-card__qrcode join-star">
+            <img src="https://cdn.tobebetterjavaer.com/paicoding/image-22f38916e1fc4b33b05f70493f317fd6.png" alt="二哥的星球">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 打赏支付  -->
+  <div class="modal fade"
+       id="payModel"
+       data-backdrop="static"
+       data-keyboard="false"
+       tabindex="-1"
+       role="dialog"
+       aria-labelledby="deleteModalDropLabel"
+       aria-hidden="true"
+       th:if="${other.readType == 4 && article.canRead != null && article.canRead == false}"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <a href="https://t.zsxq.com/11YwgyGmC" target="_blank">
+            <h5 class="modal-title" id="payInfoModel">支付解锁阅读全文</h5>
+          </a>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div th:replace="views/user/pay/payShow :: user_pay(${author.payQrCodes}, ${article})"></div>
+        </div>
+        <div class="modal-footer">
+          <a href="#" data-target="#payInfoModal" data-toggle="modal" type="button" class="btn btn-primary"
+             data-dismiss="modal" onclick="hasPaying()">
+            已完成打赏
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 打赏列表 -->
+  <div class="modal fade"
+       id="payUserModel"
+       data-backdrop="static"
+       data-keyboard="false"
+       tabindex="-1"
+       role="dialog"
+       aria-labelledby="deleteModalDropLabel"
+       aria-hidden="true"
+       th:if="${other.readType == 4}"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <a href="https://t.zsxq.com/11YwgyGmC" target="_blank">
+            <h5 class="modal-title">打赏用户列表</h5>
+          </a>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="praise-photos">
+            <div class="approval-box" id="praiseUsers">
+              <a class="g-user-popover approval-img" th:href="'/user/' + ${item.userId}"
+                 th:each="item: ${payUsers}">
+                <img th:src="${item.avatar}" style="width: 120px;padding: 10px" width="120" height="120">
+              </a>
+              <span th:if="${payUsers == null || payUsers.size() == 0}"> 暂无打赏用户哦，快来做第一个慧眼识珠的人吧~ </span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <a href="#" data-target="#payInfoModal" data-toggle="modal" type="button" class="btn btn-primary"
+             data-dismiss="modal" onclick="redirctPayModal()" id="goPayBtn"
+             th:text="${(other.readType == 4 && article.canRead != null && article.canRead == false) ? '去打赏' : '已打赏'}">
+            去打赏
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除文章再次确认 Modal -->
+  <div class="modal fade"
+       id="deleteModal"
+       data-backdrop="static"
+       data-keyboard="false"
+       tabindex="-1"
+       role="dialog"
+       aria-labelledby="deleteModalDropLabel"
+       aria-hidden="true"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalDropLabel">删除提醒</h5>
+          <button type="button"
+                  class="close"
+                  data-dismiss="modal"
+                  aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p th:text="${'确定删除《' + article.title + '》吗'}">确定删除吗？</p>
+        </div>
+        <div class="modal-footer">
+          <button id="deleteBtn" type="button" class="btn btn-primary">
+            确定
+          </button>
+          <button type="button"
+                  class="btn btn-secondary"
+                  data-dismiss="modal">
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--  点赞放这里-->
+  <div th:replace="components/article/praise :: praise(${article})"></div>
+  <script th:inline="javascript">
+    // 删除文章
+    let id = [[${article.articleId}]]
+    $('#deleteBtn').click(function () {
+      get("/article/api/delete?articleId=" + id, {}, function (data) {
+        // 删除文章成功，跳转到首页
+        window.location.href = "/";
+      });
+    });
+
+    // 高亮代码
+    hljs.addPlugin({
+      'after:highlightElement': ({ el, result }) => {
+        // move the language from the result into the dataset
+        el.setAttribute('lang', result.language);
+        el.classList.add('copyable');
+
+        // 创建复制代码按钮
+        const copyBtn = document.createElement('span');
+        copyBtn.classList.add('copy-code-btn');
+        copyBtn.textContent = '复制代码';
+
+        // 将复制代码按钮添加到代码块后
+        el.parentNode.insertBefore(copyBtn, el.nextSibling);
+      }
+    });
+    hljs.highlightAll();
+
+    const clipboard = new ClipboardJS('.copy-code-btn', {
+      target: function(trigger) {
+        return trigger.previousElementSibling;
+      }
+    });
+
+    clipboard.on('success', function(e) {
+      // 复制成功
+      toastr.info("复制成功");
+      e.clearSelection();
+    });
+
+    clipboard.on('error', function(e) {
+      console.log('复制失败');
+    });
+
+    // 星球文章的权限控制
+    console.log("实体内容:", [[${article}]])
+    let loginRead = [[${other.readType}]];
+    let user = [[${global.user}]];
+    if (loginRead == 4) {
+      // 对于付费阅读场景
+      if (![[${article.canRead}]]) {
+        if (user == null) {
+          // 未登录时，弹出登录窗口
+          $('#loginModal').modal('show')
+        }
+      }
+    }
+
+    // -------------------------------------- 下面是打赏支付、解锁全文的逻辑 -------------------------------------------
+
+    function showPayUserInfo() {
+      // 显示打赏用户信息
+      $('#payUserModel').modal('show');
+    }
+
+    function redirctPayModal() {
+      $('#payUserModel').modal('hide');
+      showPayModal();
+    }
+
+    // 显示支付窗口
+    let payId;
+    function showPayModal() {
+      $('#payModel').modal('show');
+      autoShowPay();
+    }
+
+    function hasPaying() {
+      let notes = getNotesInfo()
+      // 标记为已经支付完成
+      if (payId) {
+        get("/article/api/pay/paying", {"payId": payId, "succeed": true, "notes": notes}, (res) => {
+          toastr.info("支付结果的验证需要一点点时间，请耐心等候~");
+          $('#payModel').modal('hide');
+        })
+      } else {
+        // 没有支付id，重新创建一个
+        get("/article/api/pay/toPay", {"articleId": id}, (res) => {
+          payId = res.payId;
+          get("/article/api/pay/paying", {"payId": res.payId, "succeed": true}, (res) => {
+            toastr.info("支付结果的验证需要一点点时间，请耐心等候~");
+            $('#payModel').modal('hide');
+          })
+        })
+      }
+    }
+
+    function getNotesInfo() {
+      let notesDiv = $('#mark')
+      let notes;
+      if (notesDiv) {
+        notes = notesDiv.val()
+      } else {
+        notes = ''
+      }
+      return notes;
+    }
+
+    // 初始化 Fancybox 图片预览功能
+    (function() {
+      // 为所有文章图片添加 cursor 样式提示可点击
+      const images = document.querySelectorAll('.article-content img');
+
+      function applyColdReadableImageSize(img) {
+        if (img.classList.contains('article-content-img--text-shot')) {
+          return;
+        }
+
+        // 与服务端规则保持一致：只收窄竖图（微信聊天/手机截图），横图、方图不动
+        if (img.naturalWidth < 640 || img.naturalWidth > 1200 || img.naturalHeight <= img.naturalWidth) {
+          return;
+        }
+
+        const maxWidth = Math.min(560, Math.max(400, Math.floor(img.naturalWidth / 2)));
+        if (maxWidth >= img.naturalWidth * 0.92) {
+          return;
+        }
+
+        img.classList.add('article-content-img--text-shot');
+        img.style.setProperty('--article-img-max-width', maxWidth + 'px');
+      }
+
+      function syncLoadedImageSize(img) {
+        if (img.naturalWidth <= 0 || img.naturalHeight <= 0) {
+          return;
+        }
+
+        if (img.classList.contains('article-content-img--pending-size')) {
+          if (!img.hasAttribute('width')) {
+            img.setAttribute('width', img.naturalWidth);
+          }
+          if (!img.hasAttribute('height')) {
+            img.setAttribute('height', img.naturalHeight);
+          }
+          img.classList.remove('article-content-img--pending-size');
+        }
+        applyColdReadableImageSize(img);
+      }
+
+      images.forEach(function(img) {
+        img.style.cursor = 'zoom-in';
+        if (img.complete) {
+          syncLoadedImageSize(img);
+        } else {
+          img.addEventListener('load', function() {
+            syncLoadedImageSize(img);
+          }, { once: true });
+        }
+      });
+
+      // 初始化 Fancybox
+      Fancybox.bind('.article-content img', {
+        groupAll: true, // 将所有图片作为一组，支持左右翻页
+        Hash: false, // 不修改 URL hash
+        Toolbar: {
+          display: {
+            left: ["infobar"],
+            middle: [
+              "zoomIn",
+              "zoomOut",
+              "toggle1to1",
+              "rotateCCW",
+              "rotateCW",
+              "flipX",
+              "flipY",
+            ],
+            right: ["slideshow", "download", "thumbs", "close"]
+          }
+        },
+        Thumbs: {
+          autoStart: false, // 默认不显示缩略图
+        },
+        Images: {
+          zoom: true, // 启用缩放
+        }
+      });
+    })();
+
+  </script>
+</section>
+</html>

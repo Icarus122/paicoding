@@ -1,0 +1,54 @@
+{
+  "appid": "wx6b84c739c58813a6",
+  "projectname": "paicoding-miniapp",
+  "miniprogramRoot": "./",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true,
+    "enhance": true,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "libVersion": "3.15.0",
+  "packOptions": {
+    "include": [
+      {
+        "value": "skills",
+        "type": "folder"
+      }
+    ],
+    "ignore": [
+      {
+        "value": "cli-agent-run",
+        "type": "folder"
+      }
+    ]
+  },
+  "condition": {},
+  "watchOptions": {
+    "ignore": [
+      "cli-agent-run/**/*"
+    ]
+  },
+  "simulatorPluginLibVersion": {},
+  "editorSetting": {}
+}
